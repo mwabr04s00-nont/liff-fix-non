@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#4338ca">
+  <title>ระบบแจ้งซ่อมภายในองค์กร</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    body { -webkit-tap-highlight-color: transparent; }
+    .form-input {
+      display: block;
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: .65rem;
+      background: white;
+      padding: .7rem .75rem;
+      font-size: .8rem;
+      outline: none;
+    }
+    .form-input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgb(99 102 241 / .12);
+    }
+    .label { display: block; font-size: .72rem; font-weight: 600; color: #475569; }
+    .radio-card {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      border: 1px solid #e2e8f0;
+      border-radius: .65rem;
+      background: white;
+      padding: .65rem .75rem;
+    }
+    .menu-button {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      gap: 1rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 1rem;
+      background: white;
+      padding: 1rem;
+      text-align: left;
+      box-shadow: 0 1px 2px rgb(15 23 42 / .05);
+    }
+    .menu-icon {
+      display: flex;
+      width: 3rem;
+      height: 3rem;
+      flex-shrink: 0;
+      align-items: center;
+      justify-content: center;
+      border-radius: .75rem;
+      font-size: 1.5rem;
+    }
+    .menu-button b { display: block; font-size: .875rem; }
+    .menu-button small { display: block; margin-top: .25rem; color: #64748b; font-size: .7rem; }
+    .spinner {
+      width: 42px;
+      height: 42px;
+      border: 4px solid #e2e8f0;
+      border-top-color: #4f46e5;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-100 font-sans text-slate-800">
+  <div id="loading" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 p-5">
+    <div class="w-full max-w-xs rounded-2xl bg-white p-6 text-center shadow-xl">
+      <div class="spinner mx-auto"></div>
+      <p id="loading-text" class="mt-4 text-sm font-medium">กำลังดำเนินการ...</p>
+    </div>
+  </div>
+
+  <main class="mx-auto min-h-screen max-w-md bg-white shadow-xl">
+    <header class="rounded-b-3xl bg-indigo-700 px-5 pb-6 pt-6 text-white shadow-md">
+      <div class="flex items-center gap-3">
+        <img id="avatar" class="hidden h-11 w-11 rounded-full border-2 border-white object-cover" alt="รูปโปรไฟล์">
+        <div>
+          <h1 id="greeting" class="text-base font-bold">ระบบแจ้งซ่อม</h1>
+          <p class="mt-1 text-xs text-indigo-100">แจ้งซ่อมและติดตามสถานะงานภายในองค์กร</p>
+        </div>
+      </div>
+      <div id="connection-box" class="mt-3 flex items-center justify-between rounded-lg bg-white/10 px-3 py-2 text-xs">
+        <span id="connection">กำลังเชื่อมต่อกับ LINE...</span>
+        <button id="login-button" type="button" onclick="loginLine()" class="hidden rounded bg-white px-2 py-1 font-bold text-indigo-800">เข้าสู่ระบบ</button>
+      </div>
+      <div id="user-info-badge" class="mt-1 hidden text-[11px] text-indigo-200">
+        LINE UID: <span id="display-uid" class="font-mono text-white"></span>
+      </div>
+    </header>
+
+    <section id="home" class="space-y-4 p-5">
+      <h2 class="text-sm font-bold">เลือกบริการที่ต้องการ</h2>
+      <button class="menu-button" type="button" onclick="showView('building')">
+        <span class="menu-icon bg-indigo-50">🏢</span>
+        <span><b>แจ้งซ่อมอาคาร / สถานที่</b><small>ไฟฟ้า ประปา ประตู งานโยธา และพื้นที่ส่วนกลาง</small></span>
+      </button>
+      <button class="menu-button" type="button" onclick="showView('equipment')">
+        <span class="menu-icon bg-blue-50">💻</span>
+        <span><b>แจ้งซ่อมครุภัณฑ์ / อุปกรณ์</b><small>แจ้งอาการเสีย พร้อมข้อมูลอุปกรณ์</small></span>
+      </button>
+      <button class="menu-button" type="button" onclick="openStatus()">
+        <span class="menu-icon bg-emerald-50">🔍</span>
+        <span><b>ตรวจสอบสถานะงาน</b><small>ดูรายการของฉัน หรือค้นหาด้วยเลขที่ใบงาน</small></span>
+      </button>
+    </section>
+
+    <section id="building" class="hidden space-y-4 p-5">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h2 class="font-bold text-indigo-700">🏢 แจ้งซ่อมอาคาร / สถานที่</h2>
+        <button type="button" onclick="showView('home')" class="text-xs underline">กลับ</button>
+      </div>
+      <input id="b-name" class="form-input" maxlength="120" placeholder="ชื่อ-นามสกุล">
+      <input id="b-dept" class="form-input" maxlength="120" placeholder="หน่วยงาน / แผนก">
+      <input id="b-phone" class="form-input" maxlength="40" placeholder="เบอร์โทรภายใน (ไม่บังคับ)">
+      <label class="label">อาคาร / สถานที่
+        <select id="b-location" class="form-input mt-1">
+          <option>อาคารสำนักงาน</option>
+          <option>อาคารซ่อมท่อ</option>
+          <option>อาคารคลังพัสดุ</option>
+          <option>โรงอาหาร</option>
+        </select>
+      </label>
+      <input id="b-area" class="form-input" maxlength="200" placeholder="บริเวณ / ห้อง เช่น ชั้น 2 ทางเดิน">
+      <label class="label">หมวดหมู่
+        <select id="b-category" class="form-input mt-1">
+          <option value="🚰 ระบบประปา / ท่อรั่วซึม">🚰 ระบบประปา / ท่อรั่วซึม</option>
+          <option value="💡 ระบบไฟฟ้าแสงสว่าง / ปลั๊กไฟ / เบรกเกอร์">💡 ระบบไฟฟ้าแสงสว่าง / ปลั๊กไฟ / เบรกเกอร์</option>
+          <option value="🚪 ประตู / หน้าต่าง / กลอน / ลูกบิด">🚪 ประตู / หน้าต่าง / กลอน / ลูกบิด</option>
+          <option value="🧱 งานโยธา / ฝ้าเพดาน / หลังคา / พื้น / ผนัง">🧱 งานโยธา / ฝ้าเพดาน / หลังคา / พื้น / ผนัง</option>
+          <option value="🌿 ภูมิทัศน์ / ความสะอาด / ทางเดิน">🌿 ภูมิทัศน์ / ความสะอาด / ทางเดิน</option>
+        </select>
+      </label>
+      <textarea id="b-detail" class="form-input min-h-24" maxlength="2000" placeholder="รายละเอียดอาการ / ความเสียหาย"></textarea>
+      <fieldset class="space-y-2">
+        <legend class="label mb-2">ระดับความเร่งด่วน</legend>
+        <label class="radio-card"><input type="radio" name="b-urgency" value="ปกติ" checked> 🟢 ปกติ</label>
+        <label class="radio-card"><input type="radio" name="b-urgency" value="เร่งด่วน"> 🟡 เร่งด่วน</label>
+        <label class="radio-card"><input type="radio" name="b-urgency" value="เร่งด่วนมาก"> 🔴 เร่งด่วนมาก</label>
+      </fieldset>
+      <div class="space-y-2">
+        <h3 class="text-xs font-bold">รูปถ่ายหน้างาน (ไม่เกิน 3 รูป)</h3>
+        <p class="text-xs text-slate-500">เลือกถ่ายรูปหรือเลือกรูปจากเครื่อง ระบบจะย่อภาพก่อนส่ง</p>
+        <input id="b-images" type="file" accept="image/*" capture="environment" multiple
+          class="block w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-xs">
+        <p id="b-image-info" class="text-xs text-slate-500"></p>
+      </div>
+      <button id="b-submit" type="button" onclick="submitTicket('building')"
+        class="w-full rounded-xl bg-indigo-600 py-3 font-bold text-white shadow">
+        ส่งแจ้งซ่อมอาคาร
+      </button>
+    </section>
+
+    <section id="equipment" class="hidden space-y-4 p-5">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h2 class="font-bold text-blue-700">💻 แจ้งซ่อมครุภัณฑ์ / อุปกรณ์</h2>
+        <button type="button" onclick="showView('home')" class="text-xs underline">กลับ</button>
+      </div>
+      <input id="e-name" class="form-input" maxlength="120" placeholder="ชื่อ-นามสกุล">
+      <input id="e-dept" class="form-input" maxlength="120" placeholder="หน่วยงาน / แผนก">
+      <input id="e-phone" class="form-input" maxlength="40" placeholder="เบอร์โทรภายใน (ไม่บังคับ)">
+      <label class="label">ประเภทอุปกรณ์
+        <select id="e-category" class="form-input mt-1">
+          <option>เครื่องปรับอากาศ</option>
+          <option>โทรศัพท์</option>
+          <option>อุปกรณ์สำนักงาน</option>
+          <option>อื่น ๆ</option>
+        </select>
+      </label>
+      <input id="e-device" class="form-input" maxlength="150" placeholder="ชื่อหรือรุ่นอุปกรณ์">
+      <div class="space-y-2">
+        <label for="e-asset" class="label">รหัสครุภัณฑ์ (ไม่บังคับ — กรอกเองหรือสแกน 10 หลัก)</label>
+        <div class="flex gap-2">
+          <input id="e-asset" class="form-input min-w-0 flex-1"
+            maxlength="10" inputmode="numeric" placeholder="ตัวเลข 10 หลัก">
+          <button type="button" onclick="triggerScanAsset()"
+            class="shrink-0 rounded-lg bg-slate-800 px-3 text-xs font-semibold text-white hover:bg-slate-700">
+            สแกน
+          </button>
+        </div>
+        <div id="qr-reader" class="hidden overflow-hidden rounded-xl border border-slate-200"></div>
+        <div id="scanner-controls" class="hidden mt-2 text-right">
+          <button type="button" onclick="stopAssetScanner()" class="rounded bg-rose-600 px-3 py-1 text-xs text-white">ปิดกล้อง</button>
+        </div>
+        <p id="qr-message" class="text-xs text-slate-500"></p>
+      </div>
+      <input id="e-brand" class="form-input" maxlength="150" placeholder="ยี่ห้อ / รุ่น (ไม่บังคับ)">
+      <input id="e-location" class="form-input" maxlength="200" placeholder="สถานที่ตั้ง เช่น อาคาร / ชั้น / ห้อง">
+      <textarea id="e-detail" class="form-input min-h-24" maxlength="2000" placeholder="รายละเอียดอาการเสีย"></textarea>
+      <fieldset class="space-y-2">
+        <legend class="label mb-2">ระดับความเร่งด่วน</legend>
+        <label class="radio-card"><input type="radio" name="e-urgency" value="ปกติ" checked> 🟢 ปกติ</label>
+        <label class="radio-card"><input type="radio" name="e-urgency" value="เร่งด่วน"> 🟡 เร่งด่วน</label>
+        <label class="radio-card"><input type="radio" name="e-urgency" value="เร่งด่วนมาก"> 🔴 เร่งด่วนมาก</label>
+      </fieldset>
+      <fieldset class="space-y-2">
+        <legend class="label mb-2">สถานะการใช้งานอุปกรณ์</legend>
+        <label class="radio-card"><input type="radio" name="e-device-status" value="ใช้งานได้" checked> ใช้งานได้</label>
+        <label class="radio-card"><input type="radio" name="e-device-status" value="ใช้งานได้บางส่วน"> ใช้งานได้บางส่วน</label>
+        <label class="radio-card"><input type="radio" name="e-device-status" value="ใช้งานไม่ได้"> ใช้งานไม่ได้</label>
+      </fieldset>
+      <div class="space-y-2">
+        <h3 class="text-xs font-bold">รูปถ่ายอุปกรณ์ (ไม่เกิน 3 รูป)</h3>
+        <p class="text-xs text-slate-500">เลือกถ่ายรูปหรือเลือกรูปจากเครื่อง ระบบจะย่อภาพก่อนส่ง</p>
+        <input id="e-images" type="file" accept="image/*" capture="environment" multiple
+          class="block w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-xs">
+        <p id="e-image-info" class="text-xs text-slate-500"></p>
+      </div>
+      <button id="e-submit" type="button" onclick="submitTicket('equipment')"
+        class="w-full rounded-xl bg-blue-600 py-3 font-bold text-white shadow">
+        ส่งแจ้งซ่อมครุภัณฑ์
+      </button>
+    </section>
+
+    <section id="status" class="hidden space-y-4 p-5">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h2 class="font-bold text-emerald-700">🔍 ตรวจสอบสถานะงาน</h2>
+        <button type="button" onclick="showView('home')" class="text-xs underline">กลับ</button>
+      </div>
+      <div class="flex gap-2">
+        <input id="search-id" class="form-input min-w-0 flex-1" placeholder="เลขที่ใบงาน เช่น BLD-20261110-XXXXXX">
+        <button type="button" onclick="searchTicket()" class="rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white">
+          ค้นหา
+        </button>
+      </div>
+      <button type="button" onclick="loadMyTickets()" class="text-xs font-semibold text-indigo-600 hover:underline">
+        ↻ โหลดรายการแจ้งซ่อมของฉัน
+      </button>
+      <div id="status-list" class="space-y-3"></div>
+    </section>
+
+    <section id="success" class="hidden p-7 text-center">
+      <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl text-emerald-700">✓</div>
+      <h2 class="mt-4 text-lg font-bold">ส่งคำขอแจ้งซ่อมแล้ว</h2>
+      <p class="mt-2 text-sm text-slate-500">เลขที่ใบงาน</p>
+      <p id="success-id" class="mt-2 inline-block rounded-xl bg-indigo-50 px-4 py-2 text-lg font-black text-indigo-700"></p>
+      <p id="success-message" class="mt-3 text-xs text-slate-500"></p>
+      <button type="button" onclick="openStatus()" class="mt-5 w-full rounded-xl bg-indigo-600 py-3 font-bold text-white">ตรวจสอบสถานะ</button>
+      <button type="button" onclick="showView('home')" class="mt-3 w-full rounded-xl border py-3 font-semibold">กลับหน้าหลัก</button>
+    </section>
+  </main>
+
+  <script>
+    // กำหนดค่า LIFF ID โดยตรง หรือรับจาก Apps Script
+    let LIFF_ID = "<?= liffId ?>";
+    if (!LIFF_ID || LIFF_ID.includes('liffId')) {
+      LIFF_ID = ""; // จะถูกดึงผ่าน API getLiffConfig หาก template ส่งมาไม่ได้
+    }
+    
+    let idToken = '';
+    let lineUserId = '';
+    let displayName = '';
+    let assetScanner = null;
+
+    document.addEventListener('DOMContentLoaded', function () {
+      bindImageInputs();
+      init();
+    });
+
+    function callGoogleFunction(functionName, ...args) {
+      return new Promise(function (resolve, reject) {
+        if (!window.google || !google.script || !google.script.run) {
+          reject(new Error('ไม่พบ google.script.run (เปิดนอกระบบ GAS)'));
+          return;
+        }
+        const runner = google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(function (error) {
+            reject(new Error(error && error.message ? error.message : String(error)));
+          });
+        runner[functionName](...args);
+      });
+    }
+
+    async function init() {
+      const conn = document.getElementById('connection');
+      const loginBtn = document.getElementById('login-button');
+      conn.textContent = 'กำลังเชื่อมต่อกับ LINE...';
+
+      // ตั้ง timeout 12 วินาที ป้องกันหน้าจอค้างไม่แสดงข้อผิดพลาด
+      const timeoutId = setTimeout(() => {
+        if (!lineUserId && !liff?.isLoggedIn?.()) {
+          conn.textContent = 'เชื่อมต่อนานผิดปกติ แตะที่นี่เพื่อรีเฟรช';
+          conn.style.cursor = 'pointer';
+          conn.onclick = () => window.location.reload();
+        }
+      }, 12000);
+
+      try {
+        if (!LIFF_ID) {
+          const config = await callGoogleFunction('getLiffConfig');
+          LIFF_ID = config && config.liffId ? String(config.liffId).trim() : '';
+        }
+
+        if (!LIFF_ID) {
+          throw new Error('ไม่พบ LIFF_ID ในระบบ กรุณาตรวจ Script Properties');
+        }
+
+        if (typeof liff === 'undefined') {
+          throw new Error('โหลด LINE SDK ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต');
+        }
+
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          conn.textContent = 'ยังไม่ได้เข้าสู่ระบบ LINE';
+          if (liff.isInClient()) {
+            liff.login();
+          } else {
+            loginBtn.classList.remove('hidden');
+          }
+          clearTimeout(timeoutId);
+          return;
+        }
+
+        loginBtn.classList.add('hidden');
+        idToken = liff.getIDToken() || '';
+        
+        try {
+          const profile = await liff.getProfile();
+          lineUserId = profile.userId || '';
+          displayName = profile.displayName || '';
+          
+          document.getElementById('greeting').textContent = displayName ? 'สวัสดี, ' + displayName : 'ระบบแจ้งซ่อม';
+          document.getElementById('b-name').value = displayName;
+          document.getElementById('e-name').value = displayName;
+          
+          if (lineUserId) {
+            document.getElementById('display-uid').textContent = lineUserId;
+            document.getElementById('user-info-badge').classList.remove('hidden');
+          }
+
+          if (profile.pictureUrl) {
+            const avatar = document.getElementById('avatar');
+            avatar.src = profile.pictureUrl;
+            avatar.classList.remove('hidden');
+          }
+        } catch (e) {
+          console.warn('โหลดโปรไฟล์ LINE ไม่สำเร็จ:', e);
+        }
+
+        conn.textContent = 'เชื่อมต่อ LINE สำเร็จแล้ว';
+        clearTimeout(timeoutId);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        console.error('LIFF init error:', error);
+        conn.textContent = 'เชื่อมต่อไม่สำเร็จ: ' + (error.message || String(error));
+      }
+    }
+
+    function loginLine() {
+      if (typeof liff !== 'undefined' && LIFF_ID) {
+        const targetUrl = 'https://liff.line.me/' + LIFF_ID;
+        if (window.self !== window.top) {
+          window.top.location.href = targetUrl;
+        } else {
+          liff.login({ redirectUri: targetUrl });
+        }
+      }
+    }
+
+    /* -------------------- สแกนรหัสครุภัณฑ์ -------------------- */
+    async function triggerScanAsset() {
+      const message = document.getElementById('qr-message');
+      message.textContent = '';
+
+      // 1. ตรวจสอบว่าสามารถใช้ LIFF Native Code Scanner ได้หรือไม่ (ทำงานดีที่สุดใน LINE)
+      if (typeof liff !== 'undefined' && liff.isInClient() && liff.scanCodeV2) {
+        try {
+          message.textContent = 'กำลังเปิดกล้องสแกนเนอร์ของ LINE...';
+          const result = await liff.scanCodeV2();
+          if (result && result.value) {
+            handleScannedText(result.value);
+            return;
+          }
+        } catch (err) {
+          console.warn('LIFF scanCodeV2 error:', err);
+          message.textContent = 'เปลี่ยนไปใช้ระบบสแกนสำรอง...';
+        }
+      }
+
+      // 2. ถ้าเปิดนอก LINE หรือ scanCodeV2 ไม่รองรับ ให้ใช้ Html5Qrcode
+      startAssetScanner();
+    }
+
+    function handleScannedText(text) {
+      const message = document.getElementById('qr-message');
+      const match = String(text).match(/\d{10}/);
+      if (match) {
+        document.getElementById('e-asset').value = match[0];
+        message.textContent = '✓ อ่านรหัสครุภัณฑ์ 10 หลักสำเร็จ: ' + match[0];
+      } else {
+        document.getElementById('e-asset').value = String(text).trim().slice(0, 10);
+        message.textContent = 'ข้อมูลที่สแกนได้: ' + text;
+      }
+    }
+
+    async function startAssetScanner() {
+      const message = document.getElementById('qr-message');
+      const reader = document.getElementById('qr-reader');
+      const controls = document.getElementById('scanner-controls');
+
+      if (typeof Html5Qrcode === 'undefined') {
+        message.textContent = 'โหลดระบบสแกนไม่สำเร็จ กรุณากรอกรหัส 10 หลักด้วยตนเอง';
+        return;
+      }
+
+      reader.classList.remove('hidden');
+      controls.classList.remove('hidden');
+      message.textContent = 'กำลังเปิดกล้อง... กรุณากด "อนุญาต" การเข้าถึงกล้อง';
+
+      try {
+        if (assetScanner) {
+          await stopAssetScanner();
+        }
+
+        assetScanner = new Html5Qrcode('qr-reader');
+        
+        const config = {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0
+        };
+
+        await assetScanner.start(
+          { facingMode: 'environment' },
+          config,
+          async function (decodedText) {
+            handleScannedText(decodedText);
+            await stopAssetScanner();
+          },
+          function () {}
+        );
+        message.textContent = 'เล็งกล้องไปที่บาร์โค้ดหรือ QR Code ของครุภัณฑ์';
+      } catch (error) {
+        console.error('Camera open error:', error);
+        message.textContent = 'เปิดกล้องไม่สำเร็จ (อาจติดสิทธิ์ความปลอดภัย): กรุณาพิมพ์รหัส 10 หลักเอง';
+        await stopAssetScanner();
+      }
+    }
+
+    async function stopAssetScanner() {
+      const reader = document.getElementById('qr-reader');
+      const controls = document.getElementById('scanner-controls');
+      if (assetScanner) {
+        try {
+          if (assetScanner.isScanning) {
+            await assetScanner.stop();
+          }
+          assetScanner.clear();
+        } catch (e) {
+          console.warn('Error stopping scanner:', e);
+        }
+        assetScanner = null;
+      }
+      reader.classList.add('hidden');
+      controls.classList.add('hidden');
+    }
+
+    function bindImageInputs() {
+      [
+        { input: 'b-images', info: 'b-image-info' },
+        { input: 'e-images', info: 'e-image-info' }
+      ].forEach(function (item) {
+        const input = document.getElementById(item.input);
+        input.addEventListener('change', function () {
+          let files = Array.from(input.files || []);
+          if (files.length > 3) {
+            alert('แนบรูปได้ไม่เกิน 3 รูป ระบบจะใช้ 3 รูปแรก');
+            if (typeof DataTransfer !== 'undefined') {
+              const transfer = new DataTransfer();
+              files.slice(0, 3).forEach(file => transfer.items.add(file));
+              input.files = transfer.files;
+              files = Array.from(input.files);
+            } else {
+              files = files.slice(0, 3);
+            }
+          }
+          document.getElementById(item.info).textContent = files.length
+            ? 'เลือกแล้ว ' + files.length + ' รูป — ระบบจะย่อภาพก่อนส่ง'
+            : '';
+        });
+      });
+    }
+
+    function loadImageFile(file) {
+      return new Promise(function (resolve, reject) {
+        const url = URL.createObjectURL(file);
+        const image = new Image();
+        image.onload = function () {
+          URL.revokeObjectURL(url);
+          resolve(image);
+        };
+        image.onerror = function () {
+          URL.revokeObjectURL(url);
+          reject(new Error('เปิดไฟล์รูปภาพไม่ได้'));
+        };
+        image.src = url;
+      });
+    }
+
+    function canvasToJpeg(canvas, quality) {
+      return new Promise(function (resolve, reject) {
+        canvas.toBlob(function (blob) {
+          if (blob) resolve(blob);
+          else reject(new Error('ย่อรูปภาพไม่สำเร็จ'));
+        }, 'image/jpeg', quality);
+      });
+    }
+
+    function blobToDataUrl(blob) {
+      return new Promise(function (resolve, reject) {
+        const reader = new FileReader();
+        reader.onload = function () { resolve(reader.result); };
+        reader.onerror = function () { reject(new Error('อ่านรูปภาพไม่สำเร็จ')); };
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    async function compressImage(file) {
+      const image = await loadImageFile(file);
+      let width = image.width;
+      let height = image.height;
+      if (width > 1200) {
+        height = Math.round(height * 1200 / width);
+        width = 1200;
+      }
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d', { alpha: false });
+      let blob;
+      for (let attempt = 0; attempt < 10; attempt++) {
+        canvas.width = width;
+        canvas.height = height;
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, width, height);
+        context.drawImage(image, 0, 0, width, height);
+        blob = await canvasToJpeg(canvas, Math.max(0.4, 0.78 - attempt * 0.06));
+        if (blob.size <= 550 * 1024) break;
+        width = Math.max(400, Math.round(width * 0.85));
+        height = Math.max(400, Math.round(height * 0.85));
+      }
+      if (!blob || blob.size > 700 * 1024) {
+        throw new Error('รูปภาพยังมีขนาดใหญ่เกินไป กรุณาเลือกรูปที่เล็กลง');
+      }
+      return blobToDataUrl(blob);
+    }
+
+    async function collectImages(inputId) {
+      const input = document.getElementById(inputId);
+      const files = Array.from(input.files || []).slice(0, 3);
+      const images = [];
+      for (let i = 0; i < files.length; i++) {
+        setLoading(true, 'กำลังย่อรูป ' + (i + 1) + ' จาก ' + files.length + '...');
+        images.push(await compressImage(files[i]));
+      }
+      return images;
+    }
+
+    async function startAssetScanner() {
+      const message = document.getElementById('qr-message');
+      const reader = document.getElementById('qr-reader');
+      if (typeof Html5Qrcode === 'undefined') {
+        message.textContent = 'โหลดตัวสแกนไม่สำเร็จ กรุณากรอกรหัส 10 หลักด้วยตนเอง';
+        return;
+      }
+      reader.classList.remove('hidden');
+      message.textContent = 'เล็งกล้องไปที่ Barcode หรือ QR Code';
+      try {
+        assetScanner = new Html5Qrcode('qr-reader', {
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.ITF,
+            Html5QrcodeSupportedFormats.DATA_MATRIX
+          ],
+          verbose: false
+        });
+        await assetScanner.start(
+          { facingMode: 'environment' },
+          { fps: 10 },
+          async function (decodedText) {
+            const match = String(decodedText).match(/\d{10}/);
+            if (!match) {
+              message.textContent = 'อ่านได้ แต่ไม่พบเลข 10 หลัก กรุณาลองใหม่หรือกรอกเอง';
+              return;
+            }
+            document.getElementById('e-asset').value = match[0];
+            message.textContent = 'อ่านรหัส 10 หลักสำเร็จ';
+            await stopAssetScanner();
+          },
+          function () {}
+        );
+      } catch (error) {
+        message.textContent = 'เปิดกล้องไม่ได้ กรุณาอนุญาตการใช้กล้องหรือกรอกรหัสเอง';
+        await stopAssetScanner();
+      }
+    }
+
+    async function stopAssetScanner() {
+      if (!assetScanner) return;
+      try {
+        if (assetScanner.isScanning) await assetScanner.stop();
+        assetScanner.clear();
+      } catch (error) {
+        console.warn('ปิดกล้องไม่สำเร็จ', error);
+      }
+      assetScanner = null;
+      document.getElementById('qr-reader').classList.add('hidden');
+    }
+
+    function showView(id) {
+      ['home', 'building', 'equipment', 'status', 'success'].forEach(function (name) {
+        document.getElementById(name).classList.toggle('hidden', name !== id);
+      });
+      if (id !== 'equipment') stopAssetScanner();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function val(id) {
+      return document.getElementById(id).value.trim();
+    }
+
+    function checked(name) {
+      const input = document.querySelector('input[name="' + name + '"]:checked');
+      return input ? input.value : '';
+    }
+
+    async function submitTicket(type) {
+      if (!idToken && !lineUserId) {
+        alert('กรุณาเข้าสู่ระบบ LINE ก่อนทำรายการ');
+        return;
+      }
+      const building = type === 'building';
+      const payload = {
+        action: 'createTicket',
+        idToken: idToken,
+        fallbackUserId: lineUserId,
+        type: type,
+        reporterName: val(building ? 'b-name' : 'e-name'),
+        department: val(building ? 'b-dept' : 'e-dept'),
+        internalPhone: val(building ? 'b-phone' : 'e-phone'),
+        detail: val(building ? 'b-detail' : 'e-detail'),
+        urgency: checked(building ? 'b-urgency' : 'e-urgency'),
+        images: []
+      };
+
+      if (building) {
+        payload.location = val('b-location');
+        payload.areaOrRoom = val('b-area');
+        payload.category = val('b-category');
+      } else {
+        payload.location = val('e-location');
+        payload.areaOrRoom = '';
+        payload.category = val('e-category');
+        payload.deviceName = val('e-device');
+        payload.assetCode = val('e-asset');
+        payload.brandModel = val('e-brand');
+        payload.deviceStatus = checked('e-device-status');
+        if (payload.assetCode && !/^\d{10}$/.test(payload.assetCode)) {
+          alert('รหัสครุภัณฑ์ต้องเป็นตัวเลข 10 หลัก หรือเว้นว่างได้');
+          return;
+        }
+      }
+
+      if (!payload.reporterName || !payload.department || !payload.location || !payload.detail) {
+        alert('กรุณากรอกชื่อ หน่วยงาน สถานที่ และรายละเอียดให้ครบถ้วน');
+        return;
+      }
+      if (building && !payload.areaOrRoom) {
+        alert('กรุณาระบุบริเวณหรือห้อง');
+        return;
+      }
+      if (!building && !payload.deviceName) {
+        alert('กรุณาระบุชื่อหรือรุ่นอุปกรณ์');
+        return;
+      }
+
+      try {
+        payload.images = await collectImages(building ? 'b-images' : 'e-images');
+        setLoading(true, 'กำลังบันทึกใบงาน...');
+        const result = await callGoogleFunction('apiCall', payload);
+        if (!result || result.status !== 'success') {
+          throw new Error(result && result.message ? result.message : 'บันทึกใบงานไม่สำเร็จ');
+        }
+        document.getElementById('success-id').textContent = result.taskId;
+        document.getElementById('success-message').textContent =
+          result.notification && result.notification.sent
+            ? 'บันทึกแล้วและส่งแจ้งเตือนเข้ากลุ่มช่างเรียบร้อย'
+            : 'บันทึกเรียบร้อยแล้ว';
+        document.getElementById(building ? 'b-images' : 'e-images').value = '';
+        document.getElementById(building ? 'b-image-info' : 'e-image-info').textContent = '';
+        showView('success');
+      } catch (error) {
+        alert(error.message || 'ส่งใบงานไม่สำเร็จ');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function openStatus() {
+      showView('status');
+      await loadMyTickets();
+    }
+
+    async function loadMyTickets() {
+      if (!idToken && !lineUserId) {
+        showStatusMessage('กรุณาเข้าสู่ระบบ LINE เพื่อดูรายการของท่าน');
+        return;
+      }
+      setLoading(true, 'กำลังโหลดรายการ...');
+      try {
+        const result = await callGoogleFunction('apiCall', {
+          action: 'getMyTickets',
+          idToken: idToken,
+          fallbackUserId: lineUserId
+        });
+        if (!result || result.status !== 'success') {
+          throw new Error(result && result.message ? result.message : 'โหลดรายการไม่สำเร็จ');
+        }
+        renderTickets(result.data || []);
+      } catch (error) {
+        showStatusMessage(error.message || 'โหลดรายการไม่สำเร็จ');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function searchTicket() {
+      const taskId = val('search-id').toUpperCase();
+      if (!taskId) {
+        alert('กรุณากรอกเลขที่ใบงาน');
+        return;
+      }
+      setLoading(true, 'กำลังค้นหา...');
+      try {
+        const result = await callGoogleFunction('apiCall', {
+          action: 'searchTicket',
+          taskId: taskId
+        });
+        if (!result || result.status !== 'success') {
+          throw new Error(result && result.message ? result.message : 'ค้นหาไม่สำเร็จ');
+        }
+        renderTickets(result.data || []);
+      } catch (error) {
+        showStatusMessage(error.message || 'ค้นหาไม่สำเร็จ');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function renderTickets(tickets) {
+      const container = document.getElementById('status-list');
+      container.replaceChildren();
+      if (!tickets.length) {
+        showStatusMessage('ไม่พบรายการใบงาน');
+        return;
+      }
+      tickets.forEach(function (ticket) {
+        const card = document.createElement('article');
+        card.className = 'space-y-2 rounded-xl border border-slate-200 p-4 shadow-sm';
+        const top = document.createElement('div');
+        top.className = 'flex items-center justify-between gap-2';
+        const id = document.createElement('b');
+        id.className = 'text-xs text-indigo-700';
+        id.textContent = ticket.taskId || '';
+        const status = document.createElement('span');
+        status.className = 'rounded-full bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-700';
+        status.textContent = ticket.status || '';
+        const detail = document.createElement('p');
+        detail.className = 'text-sm font-semibold';
+        detail.textContent = ticket.detail || '';
+        const location = document.createElement('p');
+        location.className = 'text-xs text-slate-500';
+        location.textContent = [ticket.type, ticket.location, ticket.areaOrRoom].filter(Boolean).join(' · ');
+        const date = document.createElement('p');
+        date.className = 'text-[11px] text-slate-400';
+        date.textContent = 'วันที่แจ้ง: ' + (ticket.timestamp || '-');
+        top.append(id, status);
+        card.append(top, detail, location, date);
+        if (ticket.adminNote) {
+          const note = document.createElement('p');
+          note.className = 'rounded-lg bg-slate-50 p-2 text-xs text-slate-600';
+          note.textContent = 'หมายเหตุช่าง: ' + ticket.adminNote;
+          card.appendChild(note);
+        }
+        container.appendChild(card);
+      });
+    }
+
+    function showStatusMessage(message) {
+      const container = document.getElementById('status-list');
+      container.replaceChildren();
+      const paragraph = document.createElement('p');
+      paragraph.className = 'py-8 text-center text-sm text-slate-400';
+      paragraph.textContent = message;
+      container.appendChild(paragraph);
+    }
+
+    function setLoading(show, message) {
+      const overlay = document.getElementById('loading');
+      document.getElementById('loading-text').textContent = message || 'กำลังดำเนินการ...';
+      overlay.classList.toggle('hidden', !show);
+      overlay.classList.toggle('flex', show);
+    }
+  </script>
+</body>
+</html>
