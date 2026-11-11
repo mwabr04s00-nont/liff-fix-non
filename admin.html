@@ -3,102 +3,132 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Admin Dashboard - ระบบแจ้งซ่อม</title>
+  <title>Admin Dashboard - ระบบจัดการงานซ่อม</title>
+  <!-- โหลด Google Fonts: Prompt -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { font-family: system-ui, sans-serif; }
+    body { font-family: 'Prompt', system-ui, sans-serif; }
     .field {
       width: 100%;
-      border: 1px solid #cbd5e1;
-      border-radius: .5rem;
-      padding: .55rem .65rem;
-      font-size: .8rem;
+      border: 1.5px solid #e2e8f0;
+      border-radius: .65rem;
+      padding: .55rem .75rem;
+      font-size: .825rem;
       background: white;
+      transition: all 0.2s;
     }
     .field:focus {
-      outline: 2px solid #c7d2fe;
-      border-color: #6366f1;
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
     }
-    .table-cell { padding: .75rem; vertical-align: top; }
+    .table-cell { padding: .85rem; vertical-align: top; }
   </style>
 </head>
-<body class="min-h-screen bg-slate-100 text-slate-800">
-  <div id="pin-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4">
-    <form id="pin-form" class="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-2xl">
-      <div class="text-center text-3xl">🔐</div>
-      <h1 class="text-center text-lg font-bold">เข้าสู่ระบบผู้ดูแล</h1>
-      <p class="text-center text-sm text-slate-500">กรอกรหัส PIN เพื่อเข้าถึง Dashboard</p>
+<body class="min-h-screen bg-slate-100 text-slate-800 selection:bg-indigo-500 selection:text-white">
+  <div id="pin-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+    <form id="pin-form" class="w-full max-w-sm space-y-4 rounded-3xl bg-white p-7 shadow-2xl border border-slate-100">
+      <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-2xl text-indigo-600">🔐</div>
+      <h1 class="text-center text-lg font-bold text-slate-800">เข้าสู่ระบบผู้ดูแล</h1>
+      <p class="text-center text-xs text-slate-500">กรอกรหัส PIN เพื่อเปิดใช้งานแดชบอร์ด</p>
       <input id="pin-input" type="password" maxlength="100" autocomplete="current-password"
-        class="field text-center tracking-widest" placeholder="PIN" required>
-      <p id="pin-error" class="hidden rounded-lg bg-red-50 p-3 text-sm text-red-700"></p>
+        class="field text-center tracking-widest text-lg font-bold" placeholder="••••" required>
+      <p id="pin-error" class="hidden rounded-xl bg-red-50 p-3 text-xs text-red-700"></p>
       <button id="pin-submit" type="submit"
-        class="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition">
-        เข้าสู่ระบบ
+        class="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-600/20 hover:from-indigo-700 hover:to-indigo-800 transition">
+        ยืนยันรหัส PIN
       </button>
     </form>
   </div>
 
-  <header class="bg-slate-900 px-6 py-4 text-white shadow">
+  <header class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 px-6 py-4 text-white shadow-md">
     <div class="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-3">
-      <div>
-        <h1 class="text-lg font-bold">ระบบบริหารจัดการงานซ่อม</h1>
-        <p class="text-xs text-slate-300">Admin Dashboard</p>
+      <div class="flex items-center gap-3">
+        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/20 border border-indigo-400/30 text-xl">🛠️</span>
+        <div>
+          <h1 class="text-base font-bold tracking-tight">ระบบบริหารจัดการงานซ่อม</h1>
+          <p class="text-[11px] text-indigo-200 font-light">Admin Dashboard & Operations Center</p>
+        </div>
       </div>
       <div class="flex gap-2">
-        <button id="refresh-button" type="button" class="rounded-lg bg-slate-700 px-4 py-2 text-sm hover:bg-slate-600 transition">รีเฟรช</button>
-        <button id="new-button" type="button" class="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-bold hover:bg-indigo-600 transition">+ สร้างใบงาน</button>
+        <button id="refresh-button" type="button" class="rounded-xl bg-white/10 border border-white/10 px-4 py-2 text-xs font-medium hover:bg-white/20 transition">↻ รีเฟรช</button>
+        <button id="new-button" type="button" class="rounded-xl bg-emerald-500 hover:bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-emerald-500/25 transition">+ สร้างใบงานใหม่</button>
       </div>
     </div>
   </header>
 
   <main class="mx-auto max-w-screen-2xl space-y-5 p-5">
-    <div id="page-error" class="hidden whitespace-pre-wrap rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"></div>
+    <div id="page-error" class="hidden whitespace-pre-wrap rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"></div>
 
     <section id="dashboard-content" class="space-y-5">
-      <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div class="rounded-xl bg-white p-4 shadow-sm">
-          <p class="text-xs text-slate-500">งานทั้งหมด</p>
-          <p id="stat-total" class="mt-1 text-2xl font-bold">0</p>
+      <!-- การ์ดตัวเลขสรุปผล ตกแต่ง Gradient สดใส -->
+      <div class="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+        <div class="rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 p-5 text-white shadow-md shadow-indigo-500/15">
+          <div class="flex items-center justify-between text-indigo-100 text-xs">
+            <span>งานทั้งหมด</span>
+            <span class="rounded-lg bg-white/20 px-2 py-0.5 text-[10px]">Total</span>
+          </div>
+          <p id="stat-total" class="mt-2 text-3xl font-extrabold tracking-tight">0</p>
         </div>
-        <div class="rounded-xl bg-white p-4 shadow-sm">
-          <p class="text-xs text-amber-600">รอดำเนินการ</p>
-          <p id="stat-pending" class="mt-1 text-2xl font-bold">0</p>
+        <div class="rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 p-5 text-white shadow-md shadow-amber-500/15">
+          <div class="flex items-center justify-between text-amber-100 text-xs">
+            <span>รอดำเนินการ</span>
+            <span class="rounded-lg bg-white/20 px-2 py-0.5 text-[10px]">Pending</span>
+          </div>
+          <p id="stat-pending" class="mt-2 text-3xl font-extrabold tracking-tight">0</p>
         </div>
-        <div class="rounded-xl bg-white p-4 shadow-sm">
-          <p class="text-xs text-blue-600">กำลังดำเนินการ</p>
-          <p id="stat-progress" class="mt-1 text-2xl font-bold">0</p>
+        <div class="rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 p-5 text-white shadow-md shadow-sky-500/15">
+          <div class="flex items-center justify-between text-sky-100 text-xs">
+            <span>กำลังดำเนินการ</span>
+            <span class="rounded-lg bg-white/20 px-2 py-0.5 text-[10px]">In Progress</span>
+          </div>
+          <p id="stat-progress" class="mt-2 text-3xl font-extrabold tracking-tight">0</p>
         </div>
-        <div class="rounded-xl bg-white p-4 shadow-sm">
-          <p class="text-xs text-emerald-600">เสร็จสิ้น</p>
-          <p id="stat-done" class="mt-1 text-2xl font-bold">0</p>
+        <div class="rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-5 text-white shadow-md shadow-emerald-500/15">
+          <div class="flex items-center justify-between text-emerald-100 text-xs">
+            <span>เสร็จสิ้น</span>
+            <span class="rounded-lg bg-white/20 px-2 py-0.5 text-[10px]">Done</span>
+          </div>
+          <p id="stat-done" class="mt-2 text-3xl font-extrabold tracking-tight">0</p>
         </div>
       </div>
 
+      <!-- กราฟและสัดส่วน -->
       <div class="grid gap-4 lg:grid-cols-2">
-        <section class="rounded-xl bg-white p-4 shadow-sm">
-          <h2 class="text-sm font-bold">สัดส่วนการแจ้งซ่อมตามประเภท</h2>
-          <div class="mt-4 flex flex-wrap items-center gap-6">
-            <div id="type-pie" class="h-40 w-40 rounded-full" aria-label="กราฟวงกลมประเภทงาน"></div>
-            <div id="type-legend" class="space-y-2 text-sm"></div>
+        <section class="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-slate-800">สัดส่วนการแจ้งซ่อมตามประเภท</h2>
+            <span class="text-xs text-slate-400">สถิติสะสม</span>
+          </div>
+          <div class="mt-5 flex flex-wrap items-center gap-7">
+            <div id="type-pie" class="h-44 w-44 rounded-full shadow-inner" aria-label="กราฟวงกลมประเภทงาน"></div>
+            <div id="type-legend" class="space-y-2.5 text-xs"></div>
           </div>
         </section>
 
-        <section class="rounded-xl bg-white p-4 shadow-sm">
-          <h2 class="text-sm font-bold">จำนวนงานอาคารแยกตามสถานที่</h2>
-          <div id="building-bars" class="mt-4 space-y-3"></div>
+        <section class="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-slate-800">จำนวนงานอาคารแยกตามสถานที่</h2>
+            <span class="text-xs text-slate-400">ภาพรวมพื้นที่</span>
+          </div>
+          <div id="building-bars" class="mt-5 space-y-3.5"></div>
         </section>
       </div>
 
-      <section class="overflow-hidden rounded-xl bg-white shadow-sm">
-        <div class="grid gap-3 border-b bg-slate-50 p-4 sm:grid-cols-2 lg:grid-cols-4">
-          <input id="filter-search" class="field" placeholder="ค้นหาเลขงาน / ผู้แจ้ง / รายละเอียด">
+      <!-- ตารางและตัวกรอง -->
+      <section class="overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-100">
+        <div class="grid gap-3 border-b border-slate-100 bg-slate-50/70 p-4 sm:grid-cols-2 lg:grid-cols-4">
+          <input id="filter-search" class="field" placeholder="🔍 ค้นหาเลขงาน / ผู้แจ้ง / รายละเอียด">
           <select id="filter-type" class="field">
             <option value="">ทุกประเภทงาน</option>
             <option value="อาคาร/สถานที่">อาคาร / สถานที่</option>
             <option value="ครุภัณฑ์/อุปกรณ์">ครุภัณฑ์ / อุปกรณ์</option>
           </select>
           <select id="filter-status" class="field">
-            <option value="">ทุกสถานะ</option>
+            <option value="">ทุกสถานะงาน</option>
             <option value="รอดำเนินการ">รอดำเนินการ</option>
             <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
             <option value="เสร็จสิ้น">เสร็จสิ้น</option>
@@ -111,22 +141,22 @@
             <option>โรงอาหาร</option>
           </select>
           <input id="filter-department" class="field" placeholder="กรองตามหน่วยงาน">
-          <label class="text-xs text-slate-500">
-            วันที่เริ่ม
+          <label class="text-[11px] text-slate-500 font-medium">
+            วันที่เริ่มต้น
             <input id="filter-from" type="date" class="field mt-1">
           </label>
-          <label class="text-xs text-slate-500">
+          <label class="text-[11px] text-slate-500 font-medium">
             วันที่สิ้นสุด
             <input id="filter-to" type="date" class="field mt-1">
           </label>
-          <button id="clear-filters" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-100 transition">
-            ล้างตัวกรอง
+          <button id="clear-filters" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition">
+            ล้างตัวกรองทั้งหมด
           </button>
         </div>
 
         <div class="overflow-x-auto">
           <table class="min-w-[1500px] w-full text-left text-xs">
-            <thead class="bg-slate-100 text-slate-600">
+            <thead class="bg-slate-100/80 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
               <tr>
                 <th class="table-cell">เลขใบงาน / วันที่</th>
                 <th class="table-cell">ประเภท</th>
@@ -136,12 +166,12 @@
                 <th class="table-cell">เร่งด่วน</th>
                 <th class="table-cell">รูปภาพ</th>
                 <th class="table-cell">สถานะ</th>
-                <th class="table-cell">หมายเหตุ</th>
+                <th class="table-cell">หมายเหตุช่าง</th>
                 <th class="table-cell">บันทึก</th>
               </tr>
             </thead>
             <tbody id="ticket-table" class="divide-y divide-slate-100">
-              <tr><td colspan="10" class="table-cell text-center text-slate-400">กรุณาเข้าสู่ระบบ</td></tr>
+              <tr><td colspan="10" class="table-cell text-center text-slate-400 py-8">กรุณากรอกรหัส PIN เพื่อดูข้อมูล</td></tr>
             </tbody>
           </table>
         </div>
@@ -335,6 +365,33 @@
       renderFilteredTable();
     });
 
+    function renderFilteredTable() {
+      const search = document.getElementById('filter-search').value.trim().toLowerCase();
+      const type = document.getElementById('filter-type').value;
+      const status = document.getElementById('filter-status').value;
+      const location = document.getElementById('filter-location').value;
+      const department = document.getElementById('filter-department').value.trim().toLowerCase();
+      const from = document.getElementById('filter-from').value;
+      const to = document.getElementById('filter-to').value;
+
+      const rows = allTickets.filter(function (ticket) {
+        const searchable = [
+          ticket.taskId, ticket.reporterName, ticket.detail, ticket.category
+        ].join(' ').toLowerCase();
+        const date = String(ticket.timestamp || '').slice(0, 10);
+
+        return (!search || searchable.includes(search))
+          && (!type || ticket.type === type)
+          && (!status || ticket.status === status)
+          && (!location || String(ticket.location || '').includes(location))
+          && (!department || String(ticket.department || '').toLowerCase().includes(department))
+          && (!from || !date || date >= from)
+          && (!to || !date || date <= to);
+      });
+
+      renderTable(rows);
+    }
+
     async function loadDashboard(fromPin) {
       clearError();
       try {
@@ -381,28 +438,30 @@
       const equipmentCount = tickets.filter(t => t.type === 'ครุภัณฑ์/อุปกรณ์').length;
       const total = buildingCount + equipmentCount;
       const buildingPercent = total ? (buildingCount / total) * 100 : 0;
+      
+      // ปรับสีสันของกราฟวงกลมให้สดใส (Emerald & Sky Blue)
       document.getElementById('type-pie').style.background = total
-        ? 'conic-gradient(#4f46e5 0% ' + buildingPercent + '%, #0ea5e9 ' + buildingPercent + '% 100%)'
-        : '#e2e8f0';
+        ? 'conic-gradient(#10b981 0% ' + buildingPercent + '%, #0ea5e9 ' + buildingPercent + '% 100%)'
+        : '#f1f5f9';
 
       const legend = document.getElementById('type-legend');
       legend.replaceChildren();
-      addLegendItem(legend, '#4f46e5', 'อาคาร/สถานที่', buildingCount, total);
-      addLegendItem(legend, '#0ea5e9', 'ครุภัณฑ์/อุปกรณ์', equipmentCount, total);
+      addLegendItem(legend, '#10b981', 'อาคาร / สถานที่', buildingCount, total);
+      addLegendItem(legend, '#0ea5e9', 'ครุภัณฑ์ / อุปกรณ์', equipmentCount, total);
       const totalLine = document.createElement('div');
-      totalLine.className = 'pt-1 text-xs text-slate-500';
-      totalLine.textContent = 'รวม ' + total + ' ใบงาน';
+      totalLine.className = 'pt-1.5 text-xs font-semibold text-slate-500 border-t border-slate-100';
+      totalLine.textContent = 'รวมทั้งสิ้น: ' + total + ' ใบงาน';
       legend.appendChild(totalLine);
     }
 
     function addLegendItem(container, color, label, count, total) {
       const row = document.createElement('div');
-      row.className = 'flex items-center gap-2';
+      row.className = 'flex items-center gap-2.5';
       const dot = document.createElement('span');
-      dot.className = 'inline-block h-3 w-3 rounded-full';
+      dot.className = 'inline-block h-3.5 w-3.5 rounded-md shadow-sm';
       dot.style.backgroundColor = color;
       const text = document.createElement('span');
-      text.textContent = label + ': ' + count + ' (' + (total ? Math.round((count / total) * 100) : 0) + '%)';
+      text.textContent = label + ': ' + count + ' งาน (' + (total ? Math.round((count / total) * 100) : 0) + '%)';
       row.append(dot, text);
       container.appendChild(row);
     }
@@ -414,10 +473,12 @@
         'อาคารคลังพัสดุ',
         'โรงอาหาร'
       ];
+      const colors = ['bg-emerald-500', 'bg-sky-500', 'bg-indigo-500', 'bg-amber-500'];
       const buildingTickets = tickets.filter(t => t.type === 'อาคาร/สถานที่');
-      const counts = locations.map(function (location) {
+      const counts = locations.map(function (location, idx) {
         return {
           location: location,
+          color: colors[idx % colors.length],
           count: buildingTickets.filter(t => t.location === location).length
         };
       });
@@ -429,44 +490,21 @@
         const labelRow = document.createElement('div');
         labelRow.className = 'mb-1 flex justify-between text-xs';
         const label = document.createElement('span');
+        label.className = 'text-slate-600 font-medium';
         label.textContent = item.location;
         const count = document.createElement('span');
-        count.className = 'font-semibold text-slate-600';
-        count.textContent = String(item.count);
+        count.className = 'font-bold text-slate-700';
+        count.textContent = item.count + ' งาน';
         labelRow.append(label, count);
         const track = document.createElement('div');
-        track.className = 'h-3 overflow-hidden rounded-full bg-slate-100';
+        track.className = 'h-2.5 overflow-hidden rounded-full bg-slate-100';
         const bar = document.createElement('div');
-        bar.className = 'h-full rounded-full bg-indigo-500';
+        bar.className = 'h-full rounded-full transition-all duration-500 ' + item.color;
         bar.style.width = ((item.count / max) * 100) + '%';
         track.appendChild(bar);
         row.append(labelRow, track);
         container.appendChild(row);
       });
-    }
-
-    function renderFilteredTable() {
-      const search = document.getElementById('filter-search').value.trim().toLowerCase();
-      const type = document.getElementById('filter-type').value;
-      const status = document.getElementById('filter-status').value;
-      const location = document.getElementById('filter-location').value;
-      const department = document.getElementById('filter-department').value.trim().toLowerCase();
-      const from = document.getElementById('filter-from').value;
-      const to = document.getElementById('filter-to').value;
-      const rows = allTickets.filter(function (ticket) {
-        const searchable = [
-          ticket.taskId, ticket.reporterName, ticket.detail, ticket.category
-        ].join(' ').toLowerCase();
-        const date = String(ticket.timestamp || '').slice(0, 10);
-        return (!search || searchable.includes(search))
-          && (!type || ticket.type === type)
-          && (!status || ticket.status === status)
-          && (!location || String(ticket.location || '').includes(location))
-          && (!department || String(ticket.department || '').toLowerCase().includes(department))
-          && (!from || !date || date >= from)
-          && (!to || !date || date <= to);
-      });
-      renderTable(rows);
     }
 
     function renderTable(tickets) {
@@ -476,7 +514,7 @@
         const row = document.createElement('tr');
         const cell = document.createElement('td');
         cell.colSpan = 10;
-        cell.className = 'table-cell text-center text-slate-400';
+        cell.className = 'table-cell text-center text-slate-400 py-8';
         cell.textContent = allTickets.length ? 'ไม่พบรายการตามตัวกรอง' : 'ยังไม่มีใบงาน';
         row.appendChild(cell);
         tbody.appendChild(row);
@@ -484,10 +522,10 @@
       }
       tickets.forEach(function (ticket) {
         const row = document.createElement('tr');
-        row.className = 'hover:bg-slate-50';
+        row.className = 'hover:bg-slate-50/80 transition';
         row.appendChild(makeCell(
           (ticket.taskId || '') + '\n' + (ticket.timestamp || ''),
-          'font-bold text-indigo-700 whitespace-pre-line'
+          'font-mono font-bold text-indigo-600 whitespace-pre-line'
         ));
         row.appendChild(makeCell(ticket.type || ''));
         row.appendChild(makeCell(
@@ -503,9 +541,19 @@
         ));
         row.appendChild(makeCell(
           (ticket.category ? ticket.category + '\n' : '') + (ticket.detail || ''),
-          'max-w-xs whitespace-pre-line'
+          'max-w-xs whitespace-pre-line font-medium text-slate-700'
         ));
-        row.appendChild(makeCell(ticket.urgency || ''));
+
+        // Urgent Badge
+        const urgencyCell = document.createElement('td');
+        urgencyCell.className = 'table-cell';
+        const urg = ticket.urgency || 'ปกติ';
+        let urgColor = 'bg-slate-100 text-slate-700';
+        if (urg === 'เร่งด่วน') urgColor = 'bg-amber-100 text-amber-800 font-bold';
+        if (urg === 'เร่งด่วนมาก') urgColor = 'bg-rose-100 text-rose-800 font-bold';
+        urgencyCell.innerHTML = '<span class="px-2 py-0.5 rounded-md text-[11px] ' + urgColor + '">' + urg + '</span>';
+        row.appendChild(urgencyCell);
+
         const imageCell = document.createElement('td');
         imageCell.className = 'table-cell';
         if (ticket.imageUrls) {
@@ -514,7 +562,7 @@
             link.href = url.trim();
             link.target = '_blank';
             link.rel = 'noopener noreferrer';
-            link.className = 'mr-2 text-indigo-600 underline';
+            link.className = 'inline-block mr-1.5 text-xs font-medium text-sky-600 hover:underline';
             link.textContent = 'รูป ' + (index + 1);
             imageCell.appendChild(link);
           });
@@ -522,10 +570,11 @@
           imageCell.textContent = '-';
         }
         row.appendChild(imageCell);
+
         const statusCell = document.createElement('td');
         statusCell.className = 'table-cell';
         const statusSelect = document.createElement('select');
-        statusSelect.className = 'field min-w-36';
+        statusSelect.className = 'field min-w-36 text-xs font-semibold';
         ['รอดำเนินการ', 'กำลังดำเนินการ', 'เสร็จสิ้น'].forEach(function (status) {
           const option = document.createElement('option');
           option.value = status;
@@ -535,20 +584,22 @@
         });
         statusCell.appendChild(statusSelect);
         row.appendChild(statusCell);
+
         const noteCell = document.createElement('td');
         noteCell.className = 'table-cell';
         const noteInput = document.createElement('input');
-        noteInput.className = 'field min-w-48';
+        noteInput.className = 'field min-w-44 text-xs';
         noteInput.maxLength = 1000;
         noteInput.value = ticket.adminNote || '';
-        noteInput.placeholder = 'หมายเหตุช่าง';
+        noteInput.placeholder = 'บันทึกของช่าง';
         noteCell.appendChild(noteInput);
         row.appendChild(noteCell);
+
         const actionCell = document.createElement('td');
         actionCell.className = 'table-cell';
         const saveButton = document.createElement('button');
         saveButton.type = 'button';
-        saveButton.className = 'rounded-lg bg-indigo-600 px-3 py-2 font-bold text-white hover:bg-indigo-700 transition';
+        saveButton.className = 'rounded-xl bg-slate-900 px-3 py-1.5 font-semibold text-white hover:bg-slate-800 active:scale-95 transition';
         saveButton.textContent = 'บันทึก';
         saveButton.addEventListener('click', function () {
           updateTicket(ticket.taskId, statusSelect.value, noteInput.value);
