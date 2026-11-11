@@ -247,11 +247,15 @@
   </main>
 
   <script>
-    // กำหนดค่า LIFF ID โดยตรง หรือรับจาก Apps Script
-    let LIFF_ID = "<?= liffId ?>";
-    if (!LIFF_ID || LIFF_ID.includes('liffId')) {
-      LIFF_ID = ""; // จะถูกดึงผ่าน API getLiffConfig หาก template ส่งมาไม่ได้
-    }
+    // =======================================================
+    // 🔴 ใส่ URL ของ Web App ที่ได้จาก Google Apps Script ที่นี่
+    // =======================================================
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw4HLnRLEs5Xjypg-7G8d6SDzAPMiIHs1Ug0VjdNJSE4tXM4mEy8FNBswbpxTERXlBo5g/exec";
+
+    // =======================================================
+    // 🔴 ใส่ LIFF ID ที่ได้จาก LINE Developers Console ที่นี่
+    // =======================================================
+    const LIFF_ID = "2012347080-okvRZKK5";
     
     let idToken = '';
     let lineUserId = '';
@@ -263,19 +267,20 @@
       init();
     });
 
-    function callGoogleFunction(functionName, ...args) {
-      return new Promise(function (resolve, reject) {
-        if (!window.google || !google.script || !google.script.run) {
-          reject(new Error('ไม่พบ google.script.run (เปิดนอกระบบ GAS)'));
-          return;
+    // 🌟 ฟังก์ชันใหม่สำหรับติดต่อกับ Backend API 🌟
+    async function callBackend(payload) {
+      try {
+        const response = await fetch(GAS_API_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          throw new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ (HTTP ' + response.status + ')');
         }
-        const runner = google.script.run
-          .withSuccessHandler(resolve)
-          .withFailureHandler(function (error) {
-            reject(new Error(error && error.message ? error.message : String(error)));
-          });
-        runner[functionName](...args);
-      });
+        return await response.json();
+      } catch (err) {
+        throw new Error(err.message || String(err));
+      }
     }
 
     async function init() {
@@ -283,7 +288,6 @@
       const loginBtn = document.getElementById('login-button');
       conn.textContent = 'กำลังเชื่อมต่อกับ LINE...';
 
-      // ตั้ง timeout 12 วินาที ป้องกันหน้าจอค้างไม่แสดงข้อผิดพลาด
       const timeoutId = setTimeout(() => {
         if (!lineUserId && !liff?.isLoggedIn?.()) {
           conn.textContent = 'เชื่อมต่อนานผิดปกติ แตะที่นี่เพื่อรีเฟรช';
@@ -293,15 +297,6 @@
       }, 12000);
 
       try {
-        if (!LIFF_ID) {
-          const config = await callGoogleFunction('getLiffConfig');
-          LIFF_ID = config && config.liffId ? String(config.liffId).trim() : '';
-        }
-
-        if (!LIFF_ID) {
-          throw new Error('ไม่พบ LIFF_ID ในระบบ กรุณาตรวจ Script Properties');
-        }
-
         if (typeof liff === 'undefined') {
           throw new Error('โหลด LINE SDK ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต');
         }
@@ -356,12 +351,8 @@
 
     function loginLine() {
       if (typeof liff !== 'undefined' && LIFF_ID) {
-        const targetUrl = 'https://liff.line.me/' + LIFF_ID;
-        if (window.self !== window.top) {
-          window.top.location.href = targetUrl;
-        } else {
-          liff.login({ redirectUri: targetUrl });
-        }
+        const targetUrl = window.location.href; // กลับมาหน้าเดิมบน GitHub Pages
+        liff.login({ redirectUri: targetUrl });
       }
     }
 
@@ -370,7 +361,6 @@
       const message = document.getElementById('qr-message');
       message.textContent = '';
 
-      // 1. ตรวจสอบว่าสามารถใช้ LIFF Native Code Scanner ได้หรือไม่ (ทำงานดีที่สุดใน LINE)
       if (typeof liff !== 'undefined' && liff.isInClient() && liff.scanCodeV2) {
         try {
           message.textContent = 'กำลังเปิดกล้องสแกนเนอร์ของ LINE...';
@@ -385,7 +375,6 @@
         }
       }
 
-      // 2. ถ้าเปิดนอก LINE หรือ scanCodeV2 ไม่รองรับ ให้ใช้ Html5Qrcode
       startAssetScanner();
     }
 
@@ -419,15 +408,8 @@
         if (assetScanner) {
           await stopAssetScanner();
         }
-
         assetScanner = new Html5Qrcode('qr-reader');
-        
-        const config = {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0
-        };
-
+        const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
         await assetScanner.start(
           { facingMode: 'environment' },
           config,
@@ -454,9 +436,7 @@
             await assetScanner.stop();
           }
           assetScanner.clear();
-        } catch (e) {
-          console.warn('Error stopping scanner:', e);
-        }
+        } catch (e) {}
         assetScanner = null;
       }
       reader.classList.add('hidden');
@@ -562,61 +542,6 @@
       return images;
     }
 
-    async function startAssetScanner() {
-      const message = document.getElementById('qr-message');
-      const reader = document.getElementById('qr-reader');
-      if (typeof Html5Qrcode === 'undefined') {
-        message.textContent = 'โหลดตัวสแกนไม่สำเร็จ กรุณากรอกรหัส 10 หลักด้วยตนเอง';
-        return;
-      }
-      reader.classList.remove('hidden');
-      message.textContent = 'เล็งกล้องไปที่ Barcode หรือ QR Code';
-      try {
-        assetScanner = new Html5Qrcode('qr-reader', {
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.QR_CODE,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.ITF,
-            Html5QrcodeSupportedFormats.DATA_MATRIX
-          ],
-          verbose: false
-        });
-        await assetScanner.start(
-          { facingMode: 'environment' },
-          { fps: 10 },
-          async function (decodedText) {
-            const match = String(decodedText).match(/\d{10}/);
-            if (!match) {
-              message.textContent = 'อ่านได้ แต่ไม่พบเลข 10 หลัก กรุณาลองใหม่หรือกรอกเอง';
-              return;
-            }
-            document.getElementById('e-asset').value = match[0];
-            message.textContent = 'อ่านรหัส 10 หลักสำเร็จ';
-            await stopAssetScanner();
-          },
-          function () {}
-        );
-      } catch (error) {
-        message.textContent = 'เปิดกล้องไม่ได้ กรุณาอนุญาตการใช้กล้องหรือกรอกรหัสเอง';
-        await stopAssetScanner();
-      }
-    }
-
-    async function stopAssetScanner() {
-      if (!assetScanner) return;
-      try {
-        if (assetScanner.isScanning) await assetScanner.stop();
-        assetScanner.clear();
-      } catch (error) {
-        console.warn('ปิดกล้องไม่สำเร็จ', error);
-      }
-      assetScanner = null;
-      document.getElementById('qr-reader').classList.add('hidden');
-    }
-
     function showView(id) {
       ['home', 'building', 'equipment', 'status', 'success'].forEach(function (name) {
         document.getElementById(name).classList.toggle('hidden', name !== id);
@@ -625,10 +550,7 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function val(id) {
-      return document.getElementById(id).value.trim();
-    }
-
+    function val(id) { return document.getElementById(id).value.trim(); }
     function checked(name) {
       const input = document.querySelector('input[name="' + name + '"]:checked');
       return input ? input.value : '';
@@ -687,7 +609,7 @@
       try {
         payload.images = await collectImages(building ? 'b-images' : 'e-images');
         setLoading(true, 'กำลังบันทึกใบงาน...');
-        const result = await callGoogleFunction('apiCall', payload);
+        const result = await callBackend(payload);
         if (!result || result.status !== 'success') {
           throw new Error(result && result.message ? result.message : 'บันทึกใบงานไม่สำเร็จ');
         }
@@ -718,7 +640,7 @@
       }
       setLoading(true, 'กำลังโหลดรายการ...');
       try {
-        const result = await callGoogleFunction('apiCall', {
+        const result = await callBackend({
           action: 'getMyTickets',
           idToken: idToken,
           fallbackUserId: lineUserId
@@ -742,10 +664,7 @@
       }
       setLoading(true, 'กำลังค้นหา...');
       try {
-        const result = await callGoogleFunction('apiCall', {
-          action: 'searchTicket',
-          taskId: taskId
-        });
+        const result = await callBackend({ action: 'searchTicket', taskId: taskId });
         if (!result || result.status !== 'success') {
           throw new Error(result && result.message ? result.message : 'ค้นหาไม่สำเร็จ');
         }
