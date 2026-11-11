@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#dc2626">
+  <title>ระบบรายงานจุดเสี่ยง & Near Miss</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body {
+      font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .form-input {
+      display: block;
+      width: 100%;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 0.85rem;
+      background: #f8fafc;
+      padding: 0.75rem 0.9rem;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+      outline: none;
+    }
+    .form-input:focus {
+      background: #ffffff;
+      border-color: #dc2626;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+    }
+    .label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #334155;
+      margin-bottom: 0.35rem;
+    }
+    .radio-card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      border: 1.5px solid #f1f5f9;
+      border-radius: 0.85rem;
+      background: white;
+      padding: 0.75rem 0.6rem;
+      cursor: pointer;
+      font-size: 0.825rem;
+      transition: all 0.2s;
+    }
+    .radio-card:has(input:checked) {
+      border-color: #dc2626;
+      background-color: #fef2f2;
+      font-weight: 600;
+      color: #991b1b;
+    }
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid #f1f5f9;
+      border-top-color: #dc2626;
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 antialiased selection:bg-rose-500 selection:text-white">
+  <div id="loading" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-5">
+    <div class="w-full max-w-xs rounded-3xl bg-white p-7 text-center shadow-2xl">
+      <div class="spinner mx-auto"></div>
+      <p id="loading-text" class="mt-4 text-sm font-medium text-slate-700">กำลังดำเนินการ...</p>
+    </div>
+  </div>
+
+  <main class="mx-auto min-h-screen max-w-md bg-white shadow-xl flex flex-col justify-between">
+    <div>
+      <!-- Header Gradient สไตล์ Safety Alert -->
+      <header class="relative overflow-hidden rounded-b-[2rem] bg-gradient-to-br from-rose-600 via-amber-600 to-red-700 px-6 pb-7 pt-7 text-white shadow-lg">
+        <div class="relative z-10 flex items-center gap-3.5">
+          <img id="avatar" class="hidden h-12 w-12 rounded-full border-2 border-white/80 shadow-md object-cover" alt="โปรไฟล์">
+          <div>
+            <h1 id="greeting" class="text-lg font-bold tracking-tight">รายงานจุดเสี่ยง & Near Miss</h1>
+            <p class="mt-0.5 text-xs text-rose-100 font-light">ชี้จุดเสี่ยง เลี่ยงอุบัติเหตุ เพื่อความปลอดภัยทุกคน</p>
+          </div>
+        </div>
+
+        <div id="connection-box" class="relative z-10 mt-4 flex items-center justify-between rounded-xl bg-white/15 backdrop-blur-md px-3.5 py-2 text-xs border border-white/10">
+          <span id="connection" class="flex items-center gap-1.5 font-medium">
+            <span class="inline-block h-2 w-2 rounded-full bg-amber-300 animate-pulse"></span>
+            กำลังเชื่อมต่อกับ LINE...
+          </span>
+          <button id="login-button" type="button" onclick="loginLine()" class="hidden rounded-lg bg-white px-3 py-1 font-bold text-rose-700 shadow-sm hover:bg-rose-50">เข้าสู่ระบบ</button>
+        </div>
+
+        <div class="relative z-10 mt-3 rounded-xl bg-amber-400/20 border border-amber-300/30 p-2.5 backdrop-blur-sm">
+          <p class="text-[11px] leading-relaxed text-amber-100">
+            ⚠️ <span class="font-semibold text-white">Near Miss คืออะไร:</span> เหตุการณ์ที่เกือบจะเกิดอุบัติเหตุ หรือสภาพแวดล้อมที่อาจก่อให้เกิดอันตราย ร่วมแจ้งเพื่อป้องกันก่อนเกิดเหตุจริง
+          </p>
+        </div>
+      </header>
+
+      <!-- ส่วนฟอร์มรายงาน -->
+      <section id="report-view" class="space-y-4 p-5">
+        <div class="flex items-center justify-between border-b pb-3">
+          <h2 class="font-bold text-slate-800 text-base flex items-center gap-1.5">
+            <span>🚨</span> แบบรายงานสภาพความไม่ปลอดภัย
+          </h2>
+          <button type="button" onclick="showHistory()" class="text-xs font-semibold text-rose-600 hover:underline">
+            ประวัติการแจ้งของฉัน
+          </button>
+        </div>
+
+        <div>
+          <label class="label">ชื่อ-นามสกุล ผู้รายงาน <span class="text-rose-500">*</span></label>
+          <input id="r-name" class="form-input" maxlength="120" placeholder="ชื่อ-นามสกุล">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="label">หน่วยงาน / แผนก <span class="text-rose-500">*</span></label>
+            <input id="r-dept" class="form-input" maxlength="120" placeholder="เช่น แผนกผลิต">
+          </div>
+          <div>
+            <label class="label">เบอร์โทรภายใน</label>
+            <input id="r-phone" class="form-input" maxlength="40" placeholder="เช่น 1234">
+          </div>
+        </div>
+
+        <div>
+          <label class="label">สถานที่ / บริเวณที่พบจุดเสี่ยง <span class="text-rose-500">*</span></label>
+          <input id="r-location" class="form-input" maxlength="200" placeholder="เช่น บริเวณทางเดินคลังสินค้า 2">
+        </div>
+
+        <div>
+          <label class="label">จุดระบุตำแหน่งเพิ่มเติม</label>
+          <input id="r-area" class="form-input" maxlength="200" placeholder="เช่น บันไดทางขึ้น หรือ เสาต้นที่ 4">
+        </div>
+
+        <fieldset class="space-y-1.5">
+          <legend class="label">ระดับความเสี่ยงประเมินเบื้องต้น <span class="text-rose-500">*</span></legend>
+          <div class="grid grid-cols-4 gap-1.5">
+            <label class="radio-card"><input type="radio" name="r-risk" value="ต่ำ" class="hidden"> 🟢 ต่ำ</label>
+            <label class="radio-card"><input type="radio" name="r-risk" value="ปานกลาง" checked class="hidden"> 🟡 กลาง</label>
+            <label class="radio-card"><input type="radio" name="r-risk" value="สูง" class="hidden"> 🟠 สูง</label>
+            <label class="radio-card"><input type="radio" name="r-risk" value="วิกฤต" class="hidden"> 🔴 วิกฤต</label>
+          </div>
+        </fieldset>
+
+        <div>
+          <label class="label">รายละเอียดสภาพที่พบ หรือเหตุการณ์เกือบเกิดอุบัติเหตุ <span class="text-rose-500">*</span></label>
+          <textarea id="r-hazard" class="form-input min-h-24 resize-none" maxlength="2000" placeholder="อธิบายสิ่งที่อาจเป็นอันตราย หรือสิ่งที่เกือบทำให้เกิดอุบัติเหตุ"></textarea>
+        </div>
+
+        <div>
+          <label class="label">ข้อเสนอแนะเพื่อความปลอดภัย (ถ้ามี)</label>
+          <textarea id="r-suggestion" class="form-input min-h-16 resize-none" maxlength="1000" placeholder="แนวทางป้องกันหรือการแก้ไขที่ท่านคิดว่าเหมาะสม"></textarea>
+        </div>
+
+        <div class="space-y-2 rounded-2xl bg-slate-50 p-3.5 border border-slate-100">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-semibold text-slate-700">รูปถ่ายจุดเสี่ยง (ไม่เกิน 3 รูป)</h3>
+            <span class="text-[10px] text-slate-400">ระบบจะย่อภาพอัตโนมัติ</span>
+          </div>
+          <input id="r-images" type="file" accept="image/*" capture="environment" multiple
+            class="block w-full rounded-xl border border-dashed border-slate-300 bg-white p-2.5 text-xs text-slate-600 file:mr-2.5 file:rounded-lg file:border-0 file:bg-rose-600 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-white hover:file:bg-rose-700">
+          <p id="r-image-info" class="text-xs font-medium text-rose-600"></p>
+        </div>
+
+        <button id="r-submit" type="button" onclick="submitNearMiss()"
+          class="w-full rounded-2xl bg-gradient-to-r from-rose-600 to-amber-600 py-3.5 font-bold text-white shadow-lg shadow-rose-600/25 active:scale-[0.99] transition">
+          ส่งรายงานจุดเสี่ยง / Near Miss
+        </button>
+      </section>
+
+      <!-- ส่วนดูประวัติ -->
+      <section id="history-view" class="hidden space-y-4 p-5">
+        <div class="flex items-center justify-between border-b pb-3.5">
+          <h2 class="font-bold text-slate-800 text-base">ประวัติรายงานของฉัน</h2>
+          <button type="button" onclick="showForm()" class="text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">← กลับหน้าแจ้ง</button>
+        </div>
+        <div id="history-list" class="space-y-3"></div>
+      </section>
+
+      <!-- หน้ายืนยันส่งสำเร็จ -->
+      <section id="success-view" class="hidden p-7 text-center">
+        <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-rose-100 text-4xl text-rose-600 shadow-inner">
+          ✓
+        </div>
+        <h2 class="mt-4 text-xl font-bold text-slate-800">ส่งรายงานเรียบร้อยแล้ว!</h2>
+        <p class="mt-1 text-xs text-slate-500">ข้อมูลถูกแจ้งเตือนไปยังทีมงานความปลอดภัยเรียบร้อยแล้ว</p>
+        
+        <div class="my-5 rounded-2xl bg-slate-50 border border-slate-100 p-4">
+          <p class="text-xs text-slate-400">เลขที่รายงาน</p>
+          <p id="success-id" class="mt-1 font-mono text-lg font-bold text-rose-600"></p>
+        </div>
+
+        <button type="button" onclick="showForm()" class="w-full rounded-2xl bg-slate-900 py-3.5 font-bold text-white shadow">
+          รายงานจุดอื่นเพิ่มเติม
+        </button>
+      </section>
+    </div>
+
+    <footer class="py-4 text-center text-[11px] text-slate-400 border-t border-slate-100">
+      ระบบความปลอดภัยและอาชีวอนามัยองค์กร © 2026
+    </footer>
+  </main>
+
+  <script>
+    // 🔴 ใส่ URL Web App จาก Google Apps Script (อันเดิมกับแจ้งซ่อม)
+    const GAS_API_URL = "https://script.google.com/macros/s/xxxxxxxxxxxxxxx/exec";
+
+    // 🔴 ใส่ LIFF ID ของ Near Miss ที่สร้างใหม่ใน LINE Login เดิม
+    const LIFF_ID = "165xxxxxxxx-xxxxxx";
+
+    let idToken = '';
+    let lineUserId = '';
+    let displayName = '';
+
+    document.addEventListener('DOMContentLoaded', function () {
+      bindImageInput();
+      init();
+    });
+
+    async function callBackend(payload) {
+      const response = await fetch(GAS_API_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (HTTP ' + response.status + ')');
+      return await response.json();
+    }
+
+    async function init() {
+      const conn = document.getElementById('connection');
+      const loginBtn = document.getElementById('login-button');
+
+      try {
+        if (typeof liff === 'undefined') throw new Error('โหลด LINE SDK ไม่สำเร็จ');
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          conn.textContent = 'ยังไม่ได้เข้าสู่ระบบ LINE';
+          if (liff.isInClient()) liff.login();
+          else loginBtn.classList.remove('hidden');
+          return;
+        }
+
+        loginBtn.classList.add('hidden');
+        idToken = liff.getIDToken() || '';
+        const profile = await liff.getProfile();
+        lineUserId = profile.userId || '';
+        displayName = profile.displayName || '';
+
+        document.getElementById('greeting').textContent = displayName ? 'สวัสดี, ' + displayName : 'ระบบแจ้งจุดเสี่ยง';
+        document.getElementById('r-name').value = displayName;
+
+        if (profile.pictureUrl) {
+          const avatar = document.getElementById('avatar');
+          avatar.src = profile.pictureUrl;
+          avatar.classList.remove('hidden');
+        }
+
+        conn.innerHTML = '✓ เชื่อมต่อ LINE สำเร็จ';
+      } catch (err) {
+        conn.textContent = 'เชื่อมต่อไม่สำเร็จ: ' + (err.message || String(err));
+      }
+    }
+
+    function loginLine() {
+      if (typeof liff !== 'undefined' && LIFF_ID) {
+        liff.login({ redirectUri: window.location.href });
+      }
+    }
+
+    function bindImageInput() {
+      const input = document.getElementById('r-images');
+      input.addEventListener('change', function () {
+        let files = Array.from(input.files || []);
+        if (files.length > 3) {
+          alert('แนบรูปได้ไม่เกิน 3 รูป ระบบจะเลือก 3 รูปแรก');
+          files = files.slice(0, 3);
+        }
+        document.getElementById('r-image-info').textContent = files.length
+          ? 'เลือกแล้ว ' + files.length + ' รูป — ระบบจะย่อภาพก่อนส่ง'
+          : '';
+      });
+    }
+
+    function loadImageFile(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const image = new Image();
+        image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
+        image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('เปิดไฟล์รูปภาพไม่ได้')); };
+        image.src = url;
+      });
+    }
+
+    async function compressImage(file) {
+      const image = await loadImageFile(file);
+      let width = image.width;
+      let height = image.height;
+      if (width > 1200) {
+        height = Math.round(height * 1200 / width);
+        width = 1200;
+      }
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d', { alpha: false });
+      canvas.width = width;
+      canvas.height = height;
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, width, height);
+      context.drawImage(image, 0, 0, width, height);
+
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        }, 'image/jpeg', 0.72);
+      });
+    }
+
+    async function collectImages() {
+      const input = document.getElementById('r-images');
+      const files = Array.from(input.files || []).slice(0, 3);
+      const images = [];
+      for (let i = 0; i < files.length; i++) {
+        setLoading(true, 'กำลังย่อรูป ' + (i + 1) + ' จาก ' + files.length + '...');
+        images.push(await compressImage(files[i]));
+      }
+      return images;
+    }
+
+    async function submitNearMiss() {
+      if (!idToken && !lineUserId) {
+        alert('กรุณาเข้าสู่ระบบ LINE ก่อนทำรายการ');
+        return;
+      }
+
+      const reporterName = document.getElementById('r-name').value.trim();
+      const department = document.getElementById('r-dept').value.trim();
+      const location = document.getElementById('r-location').value.trim();
+      const hazardDetail = document.getElementById('r-hazard').value.trim();
+      const riskLevel = document.querySelector('input[name="r-risk"]:checked')?.value || 'ปานกลาง';
+
+      if (!reporterName || !department || !location || !hazardDetail) {
+        alert('กรุณากรอกชื่อ หน่วยงาน สถานที่ และรายละเอียดให้ครบถ้วน');
+        return;
+      }
+
+      const payload = {
+        action: 'createNearMiss',
+        idToken: idToken,
+        fallbackUserId: lineUserId,
+        reporterName: reporterName,
+        department: department,
+        internalPhone: document.getElementById('r-phone').value.trim(),
+        location: location,
+        areaOrDetail: document.getElementById('r-area').value.trim(),
+        riskLevel: riskLevel,
+        hazardDetail: hazardDetail,
+        preventiveSuggestion: document.getElementById('r-suggestion').value.trim(),
+        images: []
+      };
+
+      try {
+        payload.images = await collectImages();
+        setLoading(true, 'กำลังบันทึกข้อมูล...');
+        const result = await callBackend(payload);
+        if (!result || result.status !== 'success') {
+          throw new Error(result?.message || 'บันทึกไม่สำเร็จ');
+        }
+
+        document.getElementById('success-id').textContent = result.reportId;
+        document.getElementById('report-view').classList.add('hidden');
+        document.getElementById('history-view').classList.add('hidden');
+        document.getElementById('success-view').classList.remove('hidden');
+      } catch (err) {
+        alert(err.message || 'ส่งรายงานไม่สำเร็จ');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function showForm() {
+      document.getElementById('report-view').classList.remove('hidden');
+      document.getElementById('history-view').classList.add('hidden');
+      document.getElementById('success-view').classList.add('hidden');
+      document.getElementById('r-hazard').value = '';
+      document.getElementById('r-suggestion').value = '';
+      document.getElementById('r-images').value = '';
+      document.getElementById('r-image-info').textContent = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function showHistory() {
+      document.getElementById('report-view').classList.add('hidden');
+      document.getElementById('history-view').classList.remove('hidden');
+      document.getElementById('success-view').classList.add('hidden');
+
+      setLoading(true, 'กำลังโหลดประวัติ...');
+      try {
+        const result = await callBackend({
+          action: 'getMyNearMiss',
+          idToken: idToken,
+          fallbackUserId: lineUserId
+        });
+        renderHistory(result.data || []);
+      } catch (err) {
+        alert(err.message || 'โหลดประวัติไม่สำเร็จ');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function renderHistory(items) {
+      const container = document.getElementById('history-list');
+      container.replaceChildren();
+      if (!items.length) {
+        container.innerHTML = '<p class="py-8 text-center text-sm text-slate-400">ยังไม่มีประวัติการรายงาน</p>';
+        return;
+      }
+      items.forEach(function (item) {
+        const card = document.createElement('div');
+        card.className = 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-2';
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-xs font-bold text-rose-600">${item.reportId}</span>
+            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">${item.status}</span>
+          </div>
+          <p class="text-sm font-semibold text-slate-800">${item.hazardDetail}</p>
+          <p class="text-xs text-slate-500">📍 ${item.location} ${item.areaOrDetail ? '· ' + item.areaOrDetail : ''}</p>
+          <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-50">
+            <span>ความเสี่ยง: <b class="text-slate-700">${item.riskLevel}</b></span>
+            <span>${item.timestamp}</span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function setLoading(show, text) {
+      const overlay = document.getElementById('loading');
+      document.getElementById('loading-text').textContent = text || 'กำลังดำเนินการ...';
+      overlay.classList.toggle('hidden', !show);
+      overlay.classList.toggle('flex', show);
+    }
+  </script>
+</body>
+</html>
