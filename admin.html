@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Dashboard - ระบบแจ้งซ่อม</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; }
+    .field {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: .5rem;
+      padding: .55rem .65rem;
+      font-size: .8rem;
+      background: white;
+    }
+    .field:focus {
+      outline: 2px solid #c7d2fe;
+      border-color: #6366f1;
+    }
+    .table-cell { padding: .75rem; vertical-align: top; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-800">
+  <div id="pin-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4">
+    <form id="pin-form" class="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-2xl">
+      <div class="text-center text-3xl">🔐</div>
+      <h1 class="text-center text-lg font-bold">เข้าสู่ระบบผู้ดูแล</h1>
+      <p class="text-center text-sm text-slate-500">กรอกรหัส PIN เพื่อเข้าถึง Dashboard</p>
+      <input id="pin-input" type="password" maxlength="100" autocomplete="current-password"
+        class="field text-center tracking-widest" placeholder="PIN" required>
+      <p id="pin-error" class="hidden rounded-lg bg-red-50 p-3 text-sm text-red-700"></p>
+      <button id="pin-submit" type="submit"
+        class="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition">
+        เข้าสู่ระบบ
+      </button>
+    </form>
+  </div>
+
+  <header class="bg-slate-900 px-6 py-4 text-white shadow">
+    <div class="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-lg font-bold">ระบบบริหารจัดการงานซ่อม</h1>
+        <p class="text-xs text-slate-300">Admin Dashboard</p>
+      </div>
+      <div class="flex gap-2">
+        <button id="refresh-button" type="button" class="rounded-lg bg-slate-700 px-4 py-2 text-sm hover:bg-slate-600 transition">รีเฟรช</button>
+        <button id="new-button" type="button" class="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-bold hover:bg-indigo-600 transition">+ สร้างใบงาน</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-screen-2xl space-y-5 p-5">
+    <div id="page-error" class="hidden whitespace-pre-wrap rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"></div>
+
+    <section id="dashboard-content" class="space-y-5">
+      <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div class="rounded-xl bg-white p-4 shadow-sm">
+          <p class="text-xs text-slate-500">งานทั้งหมด</p>
+          <p id="stat-total" class="mt-1 text-2xl font-bold">0</p>
+        </div>
+        <div class="rounded-xl bg-white p-4 shadow-sm">
+          <p class="text-xs text-amber-600">รอดำเนินการ</p>
+          <p id="stat-pending" class="mt-1 text-2xl font-bold">0</p>
+        </div>
+        <div class="rounded-xl bg-white p-4 shadow-sm">
+          <p class="text-xs text-blue-600">กำลังดำเนินการ</p>
+          <p id="stat-progress" class="mt-1 text-2xl font-bold">0</p>
+        </div>
+        <div class="rounded-xl bg-white p-4 shadow-sm">
+          <p class="text-xs text-emerald-600">เสร็จสิ้น</p>
+          <p id="stat-done" class="mt-1 text-2xl font-bold">0</p>
+        </div>
+      </div>
+
+      <div class="grid gap-4 lg:grid-cols-2">
+        <section class="rounded-xl bg-white p-4 shadow-sm">
+          <h2 class="text-sm font-bold">สัดส่วนการแจ้งซ่อมตามประเภท</h2>
+          <div class="mt-4 flex flex-wrap items-center gap-6">
+            <div id="type-pie" class="h-40 w-40 rounded-full" aria-label="กราฟวงกลมประเภทงาน"></div>
+            <div id="type-legend" class="space-y-2 text-sm"></div>
+          </div>
+        </section>
+
+        <section class="rounded-xl bg-white p-4 shadow-sm">
+          <h2 class="text-sm font-bold">จำนวนงานอาคารแยกตามสถานที่</h2>
+          <div id="building-bars" class="mt-4 space-y-3"></div>
+        </section>
+      </div>
+
+      <section class="overflow-hidden rounded-xl bg-white shadow-sm">
+        <div class="grid gap-3 border-b bg-slate-50 p-4 sm:grid-cols-2 lg:grid-cols-4">
+          <input id="filter-search" class="field" placeholder="ค้นหาเลขงาน / ผู้แจ้ง / รายละเอียด">
+          <select id="filter-type" class="field">
+            <option value="">ทุกประเภทงาน</option>
+            <option value="อาคาร/สถานที่">อาคาร / สถานที่</option>
+            <option value="ครุภัณฑ์/อุปกรณ์">ครุภัณฑ์ / อุปกรณ์</option>
+          </select>
+          <select id="filter-status" class="field">
+            <option value="">ทุกสถานะ</option>
+            <option value="รอดำเนินการ">รอดำเนินการ</option>
+            <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
+            <option value="เสร็จสิ้น">เสร็จสิ้น</option>
+          </select>
+          <select id="filter-location" class="field">
+            <option value="">ทุกอาคาร / สถานที่</option>
+            <option>อาคารสำนักงาน</option>
+            <option>อาคารซ่อมท่อ</option>
+            <option>อาคารคลังพัสดุ</option>
+            <option>โรงอาหาร</option>
+          </select>
+          <input id="filter-department" class="field" placeholder="กรองตามหน่วยงาน">
+          <label class="text-xs text-slate-500">
+            วันที่เริ่ม
+            <input id="filter-from" type="date" class="field mt-1">
+          </label>
+          <label class="text-xs text-slate-500">
+            วันที่สิ้นสุด
+            <input id="filter-to" type="date" class="field mt-1">
+          </label>
+          <button id="clear-filters" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-100 transition">
+            ล้างตัวกรอง
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-[1500px] w-full text-left text-xs">
+            <thead class="bg-slate-100 text-slate-600">
+              <tr>
+                <th class="table-cell">เลขใบงาน / วันที่</th>
+                <th class="table-cell">ประเภท</th>
+                <th class="table-cell">ผู้แจ้ง / หน่วยงาน / เบอร์</th>
+                <th class="table-cell">สถานที่</th>
+                <th class="table-cell">รายละเอียด</th>
+                <th class="table-cell">เร่งด่วน</th>
+                <th class="table-cell">รูปภาพ</th>
+                <th class="table-cell">สถานะ</th>
+                <th class="table-cell">หมายเหตุ</th>
+                <th class="table-cell">บันทึก</th>
+              </tr>
+            </thead>
+            <tbody id="ticket-table" class="divide-y divide-slate-100">
+              <tr><td colspan="10" class="table-cell text-center text-slate-400">กรุณาเข้าสู่ระบบ</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="create-modal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/60 p-4">
+    <form id="create-form" class="max-h-[90vh] w-full max-w-2xl space-y-4 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-bold">สร้างใบงาน Walk-in / โทรแจ้ง</h2>
+        <button id="close-modal" type="button" class="rounded-lg px-3 py-1 text-slate-500 hover:bg-slate-100">ปิด</button>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2">
+        <label class="text-xs">ประเภทงาน
+          <select id="m-type" class="field mt-1">
+            <option value="building">อาคาร / สถานที่</option>
+            <option value="equipment">ครุภัณฑ์ / อุปกรณ์</option>
+          </select>
+        </label>
+        <label class="text-xs">ระดับความเร่งด่วน
+          <select id="m-urgency" class="field mt-1">
+            <option value="ปกติ">ปกติ</option>
+            <option value="เร่งด่วน">เร่งด่วน</option>
+            <option value="เร่งด่วนมาก">เร่งด่วนมาก</option>
+          </select>
+        </label>
+        <label class="text-xs">ชื่อผู้แจ้ง
+          <input id="m-name" class="field mt-1" maxlength="120" required>
+        </label>
+        <label class="text-xs">หน่วยงาน
+          <input id="m-dept" class="field mt-1" maxlength="120" required>
+        </label>
+        <label class="text-xs">เบอร์ติดต่อภายใน
+          <input id="m-phone" class="field mt-1" maxlength="40">
+        </label>
+
+        <div id="building-fields" class="space-y-3 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 sm:col-span-2">
+          <h3 class="text-sm font-bold text-indigo-700">รายละเอียดงานอาคาร / สถานที่</h3>
+          <label class="block text-xs">อาคาร / สถานที่
+            <select id="m-building-location" class="field mt-1">
+              <option value="อาคารสำนักงาน">อาคารสำนักงาน</option>
+              <option value="อาคารซ่อมท่อ">อาคารซ่อมท่อ</option>
+              <option value="อาคารคลังพัสดุ">อาคารคลังพัสดุ</option>
+              <option value="โรงอาหาร">โรงอาหาร</option>
+            </select>
+          </label>
+          <label class="block text-xs">บริเวณ / ห้อง
+            <input id="m-building-area" class="field mt-1" maxlength="200" placeholder="เช่น ชั้น 2 ห้องประชุม">
+          </label>
+          <label class="block text-xs">หมวดหมู่งาน
+            <select id="m-building-category" class="field mt-1">
+              <option value="🚰 ระบบประปา / ท่อรั่วซึม">🚰 ระบบประปา / ท่อรั่วซึม</option>
+              <option value="💡 ระบบไฟฟ้าแสงสว่าง / ปลั๊กไฟ / เบรกเกอร์">💡 ระบบไฟฟ้าแสงสว่าง / ปลั๊กไฟ / เบรกเกอร์</option>
+              <option value="🚪 ประตู / หน้าต่าง / กลอน / ลูกบิด">🚪 ประตู / หน้าต่าง / กลอน / ลูกบิด</option>
+              <option value="🧱 งานโยธา / ฝ้าเพดาน / หลังคา / พื้น / ผนัง">🧱 งานโยธา / ฝ้าเพดาน / หลังคา / พื้น / ผนัง</option>
+              <option value="🌿 ภูมิทัศน์ / ความสะอาด / ทางเดิน">🌿 ภูมิทัศน์ / ความสะอาด / ทางเดิน</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="equipment-fields" class="hidden space-y-3 rounded-xl border border-blue-100 bg-blue-50/60 p-3 sm:col-span-2">
+          <h3 class="text-sm font-bold text-blue-700">รายละเอียดครุภัณฑ์ / อุปกรณ์</h3>
+          <label class="block text-xs">ประเภทอุปกรณ์
+            <select id="m-equipment-category" class="field mt-1">
+              <option value="เครื่องปรับอากาศ">เครื่องปรับอากาศ</option>
+              <option value="โทรศัพท์">โทรศัพท์</option>
+              <option value="อุปกรณ์สำนักงาน">อุปกรณ์สำนักงาน</option>
+              <option value="อื่น ๆ">อื่น ๆ</option>
+            </select>
+          </label>
+          <label class="block text-xs">ชื่อหรือรุ่นอุปกรณ์
+            <input id="m-device-name" class="field mt-1" maxlength="150">
+          </label>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="block text-xs">รหัสครุภัณฑ์ (ไม่บังคับ)
+              <input id="m-asset-code" class="field mt-1" maxlength="10" inputmode="numeric">
+            </label>
+            <label class="block text-xs">ยี่ห้อ / รุ่น
+              <input id="m-brand" class="field mt-1" maxlength="150">
+            </label>
+          </div>
+          <label class="block text-xs">สถานที่ตั้งอุปกรณ์
+            <input id="m-equipment-location" class="field mt-1" maxlength="200" placeholder="อาคาร / ชั้น / ห้อง">
+          </label>
+          <label class="block text-xs">สถานะการใช้งาน
+            <select id="m-device-status" class="field mt-1">
+              <option value="ใช้งานได้">ใช้งานได้</option>
+              <option value="ใช้งานได้บางส่วน">ใช้งานได้บางส่วน</option>
+              <option value="ใช้งานไม่ได้">ใช้งานไม่ได้</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="block text-xs sm:col-span-2">รายละเอียดอาการ
+          <textarea id="m-detail" class="field mt-1 min-h-24" maxlength="2000" required></textarea>
+        </label>
+      </div>
+
+      <div class="flex justify-end gap-2 border-t pt-4">
+        <button id="cancel-create" type="button" class="rounded-lg border px-4 py-2 text-sm">ยกเลิก</button>
+        <button id="submit-create" type="submit" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white">
+          บันทึกและแจ้งช่าง
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div id="toast" class="fixed bottom-5 right-5 z-[60] hidden max-w-sm rounded-xl bg-slate-900 px-4 py-3 text-sm text-white shadow-xl"></div>
+
+  <script>
+    // =======================================================
+    // 🔴 ใส่ URL ของ Web App ที่ได้จาก Google Apps Script ที่นี่
+    // =======================================================
+    const GAS_API_URL = "https://script.google.com/macros/s/xxxxxxxxxxxxxxx/exec";
+
+    let currentPin = '';
+    let allTickets = [];
+
+    // 🌟 ฟังก์ชันใหม่สำหรับติดต่อกับ Backend API 🌟
+    async function callBackend(payload) {
+      try {
+        const response = await fetch(GAS_API_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          throw new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ (HTTP ' + response.status + ')');
+        }
+        return await response.json();
+      } catch (err) {
+        throw new Error(err.message || String(err));
+      }
+    }
+
+    function showError(message) {
+      const box = document.getElementById('page-error');
+      box.textContent = message;
+      box.classList.remove('hidden');
+    }
+
+    function clearError() {
+      const box = document.getElementById('page-error');
+      box.textContent = '';
+      box.classList.add('hidden');
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(function () {
+        toast.classList.add('hidden');
+      }, 4500);
+    }
+
+    document.getElementById('pin-form').addEventListener('submit', function (event) {
+      event.preventDefault();
+      currentPin = document.getElementById('pin-input').value.trim();
+      document.getElementById('pin-error').classList.add('hidden');
+      loadDashboard(true);
+    });
+
+    document.getElementById('refresh-button').addEventListener('click', function () {
+      loadDashboard(false);
+    });
+
+    document.getElementById('new-button').addEventListener('click', openCreateModal);
+    document.getElementById('close-modal').addEventListener('click', closeCreateModal);
+    document.getElementById('cancel-create').addEventListener('click', closeCreateModal);
+    document.getElementById('create-form').addEventListener('submit', submitAdminTicket);
+    document.getElementById('m-type').addEventListener('change', updateCreateFormFields);
+
+    [
+      'filter-search', 'filter-type', 'filter-status', 'filter-location',
+      'filter-department', 'filter-from', 'filter-to'
+    ].forEach(function (id) {
+      document.getElementById(id).addEventListener('input', renderFilteredTable);
+      document.getElementById(id).addEventListener('change', renderFilteredTable);
+    });
+
+    document.getElementById('clear-filters').addEventListener('click', function () {
+      [
+        'filter-search', 'filter-type', 'filter-status', 'filter-location',
+        'filter-department', 'filter-from', 'filter-to'
+      ].forEach(function (id) {
+        document.getElementById(id).value = '';
+      });
+      renderFilteredTable();
+    });
+
+    async function loadDashboard(fromPin) {
+      clearError();
+      try {
+        const result = await callBackend({
+          action: 'adminGetAllTickets',
+          pin: currentPin
+        });
+        if (!result || result.status !== 'success') {
+          throw new Error(result && result.message ? result.message : 'โหลดข้อมูลไม่สำเร็จ');
+        }
+        if (!Array.isArray(result.data)) {
+          throw new Error('รูปแบบข้อมูลรายการงานไม่ถูกต้อง');
+        }
+        allTickets = result.data;
+        updateStats(allTickets);
+        renderFilteredTable();
+        document.getElementById('pin-modal').classList.add('hidden');
+      } catch (error) {
+        const message = error && error.message ? error.message : String(error);
+        if (fromPin) {
+          const box = document.getElementById('pin-error');
+          box.textContent = message;
+          box.classList.remove('hidden');
+        } else {
+          showError('โหลดข้อมูลไม่สำเร็จ: ' + message);
+        }
+      }
+    }
+
+    function updateStats(tickets) {
+      document.getElementById('stat-total').textContent = tickets.length;
+      document.getElementById('stat-pending').textContent =
+        tickets.filter(t => t.status === 'รอดำเนินการ').length;
+      document.getElementById('stat-progress').textContent =
+        tickets.filter(t => t.status === 'กำลังดำเนินการ').length;
+      document.getElementById('stat-done').textContent =
+        tickets.filter(t => t.status === 'เสร็จสิ้น').length;
+      renderTypePie(tickets);
+      renderBuildingBars(tickets);
+    }
+
+    function renderTypePie(tickets) {
+      const buildingCount = tickets.filter(t => t.type === 'อาคาร/สถานที่').length;
+      const equipmentCount = tickets.filter(t => t.type === 'ครุภัณฑ์/อุปกรณ์').length;
+      const total = buildingCount + equipmentCount;
+      const buildingPercent = total ? (buildingCount / total) * 100 : 0;
+      document.getElementById('type-pie').style.background = total
+        ? 'conic-gradient(#4f46e5 0% ' + buildingPercent + '%, #0ea5e9 ' + buildingPercent + '% 100%)'
+        : '#e2e8f0';
+
+      const legend = document.getElementById('type-legend');
+      legend.replaceChildren();
+      addLegendItem(legend, '#4f46e5', 'อาคาร/สถานที่', buildingCount, total);
+      addLegendItem(legend, '#0ea5e9', 'ครุภัณฑ์/อุปกรณ์', equipmentCount, total);
+      const totalLine = document.createElement('div');
+      totalLine.className = 'pt-1 text-xs text-slate-500';
+      totalLine.textContent = 'รวม ' + total + ' ใบงาน';
+      legend.appendChild(totalLine);
+    }
+
+    function addLegendItem(container, color, label, count, total) {
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-2';
+      const dot = document.createElement('span');
+      dot.className = 'inline-block h-3 w-3 rounded-full';
+      dot.style.backgroundColor = color;
+      const text = document.createElement('span');
+      text.textContent = label + ': ' + count + ' (' + (total ? Math.round((count / total) * 100) : 0) + '%)';
+      row.append(dot, text);
+      container.appendChild(row);
+    }
+
+    function renderBuildingBars(tickets) {
+      const locations = [
+        'อาคารสำนักงาน',
+        'อาคารซ่อมท่อ',
+        'อาคารคลังพัสดุ',
+        'โรงอาหาร'
+      ];
+      const buildingTickets = tickets.filter(t => t.type === 'อาคาร/สถานที่');
+      const counts = locations.map(function (location) {
+        return {
+          location: location,
+          count: buildingTickets.filter(t => t.location === location).length
+        };
+      });
+      const max = Math.max(1, ...counts.map(item => item.count));
+      const container = document.getElementById('building-bars');
+      container.replaceChildren();
+      counts.forEach(function (item) {
+        const row = document.createElement('div');
+        const labelRow = document.createElement('div');
+        labelRow.className = 'mb-1 flex justify-between text-xs';
+        const label = document.createElement('span');
+        label.textContent = item.location;
+        const count = document.createElement('span');
+        count.className = 'font-semibold text-slate-600';
+        count.textContent = String(item.count);
+        labelRow.append(label, count);
+        const track = document.createElement('div');
+        track.className = 'h-3 overflow-hidden rounded-full bg-slate-100';
+        const bar = document.createElement('div');
+        bar.className = 'h-full rounded-full bg-indigo-500';
+        bar.style.width = ((item.count / max) * 100) + '%';
+        track.appendChild(bar);
+        row.append(labelRow, track);
+        container.appendChild(row);
+      });
+    }
+
+    function renderFilteredTable() {
+      const search = document.getElementById('filter-search').value.trim().toLowerCase();
+      const type = document.getElementById('filter-type').value;
+      const status = document.getElementById('filter-status').value;
+      const location = document.getElementById('filter-location').value;
+      const department = document.getElementById('filter-department').value.trim().toLowerCase();
+      const from = document.getElementById('filter-from').value;
+      const to = document.getElementById('filter-to').value;
+      const rows = allTickets.filter(function (ticket) {
+        const searchable = [
+          ticket.taskId, ticket.reporterName, ticket.detail, ticket.category
+        ].join(' ').toLowerCase();
+        const date = String(ticket.timestamp || '').slice(0, 10);
+        return (!search || searchable.includes(search))
+          && (!type || ticket.type === type)
+          && (!status || ticket.status === status)
+          && (!location || String(ticket.location || '').includes(location))
+          && (!department || String(ticket.department || '').toLowerCase().includes(department))
+          && (!from || !date || date >= from)
+          && (!to || !date || date <= to);
+      });
+      renderTable(rows);
+    }
+
+    function renderTable(tickets) {
+      const tbody = document.getElementById('ticket-table');
+      tbody.replaceChildren();
+      if (!tickets.length) {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 10;
+        cell.className = 'table-cell text-center text-slate-400';
+        cell.textContent = allTickets.length ? 'ไม่พบรายการตามตัวกรอง' : 'ยังไม่มีใบงาน';
+        row.appendChild(cell);
+        tbody.appendChild(row);
+        return;
+      }
+      tickets.forEach(function (ticket) {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-slate-50';
+        row.appendChild(makeCell(
+          (ticket.taskId || '') + '\n' + (ticket.timestamp || ''),
+          'font-bold text-indigo-700 whitespace-pre-line'
+        ));
+        row.appendChild(makeCell(ticket.type || ''));
+        row.appendChild(makeCell(
+          (ticket.reporterName || '') + '\n' +
+          (ticket.department || '') + '\nภายใน: ' +
+          (ticket.internalPhone || '-'),
+          'whitespace-pre-line'
+        ));
+        row.appendChild(makeCell(
+          (ticket.location || '') +
+          (ticket.areaOrRoom ? '\n' + ticket.areaOrRoom : ''),
+          'whitespace-pre-line'
+        ));
+        row.appendChild(makeCell(
+          (ticket.category ? ticket.category + '\n' : '') + (ticket.detail || ''),
+          'max-w-xs whitespace-pre-line'
+        ));
+        row.appendChild(makeCell(ticket.urgency || ''));
+        const imageCell = document.createElement('td');
+        imageCell.className = 'table-cell';
+        if (ticket.imageUrls) {
+          String(ticket.imageUrls).split(',').forEach(function (url, index) {
+            const link = document.createElement('a');
+            link.href = url.trim();
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.className = 'mr-2 text-indigo-600 underline';
+            link.textContent = 'รูป ' + (index + 1);
+            imageCell.appendChild(link);
+          });
+        } else {
+          imageCell.textContent = '-';
+        }
+        row.appendChild(imageCell);
+        const statusCell = document.createElement('td');
+        statusCell.className = 'table-cell';
+        const statusSelect = document.createElement('select');
+        statusSelect.className = 'field min-w-36';
+        ['รอดำเนินการ', 'กำลังดำเนินการ', 'เสร็จสิ้น'].forEach(function (status) {
+          const option = document.createElement('option');
+          option.value = status;
+          option.textContent = status;
+          option.selected = status === ticket.status;
+          statusSelect.appendChild(option);
+        });
+        statusCell.appendChild(statusSelect);
+        row.appendChild(statusCell);
+        const noteCell = document.createElement('td');
+        noteCell.className = 'table-cell';
+        const noteInput = document.createElement('input');
+        noteInput.className = 'field min-w-48';
+        noteInput.maxLength = 1000;
+        noteInput.value = ticket.adminNote || '';
+        noteInput.placeholder = 'หมายเหตุช่าง';
+        noteCell.appendChild(noteInput);
+        row.appendChild(noteCell);
+        const actionCell = document.createElement('td');
+        actionCell.className = 'table-cell';
+        const saveButton = document.createElement('button');
+        saveButton.type = 'button';
+        saveButton.className = 'rounded-lg bg-indigo-600 px-3 py-2 font-bold text-white hover:bg-indigo-700 transition';
+        saveButton.textContent = 'บันทึก';
+        saveButton.addEventListener('click', function () {
+          updateTicket(ticket.taskId, statusSelect.value, noteInput.value);
+        });
+        actionCell.appendChild(saveButton);
+        row.appendChild(actionCell);
+        tbody.appendChild(row);
+      });
+    }
+
+    function makeCell(text, extraClass) {
+      const cell = document.createElement('td');
+      cell.className = 'table-cell ' + (extraClass || '');
+      cell.textContent = text || '-';
+      return cell;
+    }
+
+    async function updateTicket(taskId, status, adminNote) {
+      clearError();
+      try {
+        const result = await callBackend({
+          action: 'updateStatus',
+          pin: currentPin,
+          taskId: taskId,
+          status: status,
+          adminNote: adminNote
+        });
+        if (!result || result.status !== 'success') {
+          throw new Error(result && result.message ? result.message : 'บันทึกไม่สำเร็จ');
+        }
+        showToast(
+          result.notification && result.notification.sent
+            ? 'บันทึกสถานะและส่งแจ้งเตือนผู้แจ้งแล้ว'
+            : 'บันทึกสถานะเรียบร้อย'
+        );
+        await loadDashboard(false);
+      } catch (error) {
+        showError('บันทึกไม่สำเร็จ: ' + (error.message || String(error)));
+      }
+    }
+
+    function updateCreateFormFields() {
+      const isBuilding = document.getElementById('m-type').value === 'building';
+      document.getElementById('building-fields').classList.toggle('hidden', !isBuilding);
+      document.getElementById('equipment-fields').classList.toggle('hidden', isBuilding);
+    }
+
+    function openCreateModal() {
+      clearError();
+      updateCreateFormFields();
+      const modal = document.getElementById('create-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeCreateModal() {
+      const modal = document.getElementById('create-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function submitAdminTicket(event) {
+      event.preventDefault();
+      clearError();
+      const isBuilding = document.getElementById('m-type').value === 'building';
+      const payload = {
+        action: 'adminCreate',
+        pin: currentPin,
+        type: isBuilding ? 'building' : 'equipment',
+        urgency: document.getElementById('m-urgency').value,
+        reporterName: document.getElementById('m-name').value.trim(),
+        department: document.getElementById('m-dept').value.trim(),
+        internalPhone: document.getElementById('m-phone').value.trim(),
+        location: isBuilding
+          ? document.getElementById('m-building-location').value
+          : document.getElementById('m-equipment-location').value.trim(),
+        areaOrRoom: isBuilding
+          ? document.getElementById('m-building-area').value.trim()
+          : '',
+        category: isBuilding
+          ? document.getElementById('m-building-category').value
+          : document.getElementById('m-equipment-category').value,
+        deviceName: isBuilding ? '' : document.getElementById('m-device-name').value.trim(),
+        assetCode: isBuilding ? '' : document.getElementById('m-asset-code').value.trim(),
+        brandModel: isBuilding ? '' : document.getElementById('m-brand').value.trim(),
+        detail: document.getElementById('m-detail').value.trim(),
+        deviceStatus: isBuilding ? '' : document.getElementById('m-device-status').value
+      };
+
+      if (!payload.reporterName || !payload.department || !payload.location || !payload.detail) {
+        showToast('กรุณากรอกชื่อ หน่วยงาน สถานที่ และรายละเอียดให้ครบ');
+        return;
+      }
+      if (!isBuilding && !payload.deviceName) {
+        showToast('กรุณากรอกชื่อหรือรุ่นอุปกรณ์');
+        return;
+      }
+      if (payload.assetCode && !/^\d{10}$/.test(payload.assetCode)) {
+        showToast('รหัสครุภัณฑ์ต้องเป็นตัวเลข 10 หลัก หรือเว้นว่างได้');
+        return;
+      }
+
+      try {
+        const result = await callBackend(payload);
+        if (!result || result.status !== 'success') {
+          throw new Error(result && result.message ? result.message : 'สร้างใบงานไม่สำเร็จ');
+        }
+        closeCreateModal();
+        document.getElementById('create-form').reset();
+        updateCreateFormFields();
+        showToast('สร้างใบงานสำเร็จ: ' + result.taskId);
+        await loadDashboard(false);
+      } catch (error) {
+        showError('สร้างใบงานไม่สำเร็จ: ' + (error.message || String(error)));
+      }
+    }
+
+    updateCreateFormFields();
+  </script>
+</body>
+</html>
