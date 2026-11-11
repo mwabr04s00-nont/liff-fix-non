@@ -3,247 +3,386 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#4338ca">
+  <meta name="theme-color" content="#06c755">
   <title>ระบบแจ้งซ่อมภายในองค์กร</title>
+  <!-- โหลด Google Fonts: Prompt สำหรับความทันสมัย -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
-    body { -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
     .form-input {
       display: block;
       width: 100%;
-      border: 1px solid #cbd5e1;
-      border-radius: .65rem;
-      background: white;
-      padding: .7rem .75rem;
-      font-size: .8rem;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 0.85rem;
+      background: #f8fafc;
+      padding: 0.75rem 0.9rem;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
       outline: none;
     }
     .form-input:focus {
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgb(99 102 241 / .12);
+      background: #ffffff;
+      border-color: #06c755;
+      box-shadow: 0 0 0 3px rgba(6, 199, 85, 0.15);
     }
-    .label { display: block; font-size: .72rem; font-weight: 600; color: #475569; }
+    .label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #334155;
+      margin-bottom: 0.35rem;
+    }
     .radio-card {
       display: flex;
       align-items: center;
-      gap: .5rem;
-      border: 1px solid #e2e8f0;
-      border-radius: .65rem;
+      gap: 0.65rem;
+      border: 1.5px solid #f1f5f9;
+      border-radius: 0.85rem;
       background: white;
-      padding: .65rem .75rem;
+      padding: 0.75rem 0.9rem;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .radio-card:has(input:checked) {
+      border-color: #06c755;
+      background-color: #f0fdf4;
+      font-weight: 600;
+      color: #166534;
     }
     .menu-button {
       display: flex;
       width: 100%;
       align-items: center;
       gap: 1rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 1rem;
+      border: 1px solid #f1f5f9;
+      border-radius: 1.25rem;
       background: white;
-      padding: 1rem;
+      padding: 1.15rem 1.25rem;
       text-align: left;
-      box-shadow: 0 1px 2px rgb(15 23 42 / .05);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .menu-icon {
-      display: flex;
-      width: 3rem;
-      height: 3rem;
-      flex-shrink: 0;
-      align-items: center;
-      justify-content: center;
-      border-radius: .75rem;
-      font-size: 1.5rem;
+    .menu-button:active {
+      transform: scale(0.98);
     }
-    .menu-button b { display: block; font-size: .875rem; }
-    .menu-button small { display: block; margin-top: .25rem; color: #64748b; font-size: .7rem; }
     .spinner {
-      width: 42px;
-      height: 42px;
-      border: 4px solid #e2e8f0;
-      border-top-color: #4f46e5;
+      width: 44px;
+      height: 44px;
+      border: 4px solid #f1f5f9;
+      border-top-color: #06c755;
       border-radius: 50%;
-      animation: spin .8s linear infinite;
+      animation: spin .75s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
-<body class="min-h-screen bg-slate-100 font-sans text-slate-800">
-  <div id="loading" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 p-5">
-    <div class="w-full max-w-xs rounded-2xl bg-white p-6 text-center shadow-xl">
+<body class="min-h-screen bg-slate-50 text-slate-800 antialiased selection:bg-emerald-500 selection:text-white">
+  <div id="loading" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-5">
+    <div class="w-full max-w-xs rounded-3xl bg-white p-7 text-center shadow-2xl">
       <div class="spinner mx-auto"></div>
-      <p id="loading-text" class="mt-4 text-sm font-medium">กำลังดำเนินการ...</p>
+      <p id="loading-text" class="mt-4 text-sm font-medium text-slate-700">กำลังดำเนินการ...</p>
     </div>
   </div>
 
-  <main class="mx-auto min-h-screen max-w-md bg-white shadow-xl">
-    <header class="rounded-b-3xl bg-indigo-700 px-5 pb-6 pt-6 text-white shadow-md">
-      <div class="flex items-center gap-3">
-        <img id="avatar" class="hidden h-11 w-11 rounded-full border-2 border-white object-cover" alt="รูปโปรไฟล์">
-        <div>
-          <h1 id="greeting" class="text-base font-bold">ระบบแจ้งซ่อม</h1>
-          <p class="mt-1 text-xs text-indigo-100">แจ้งซ่อมและติดตามสถานะงานภายในองค์กร</p>
+  <main class="mx-auto min-h-screen max-w-md bg-white shadow-xl flex flex-col justify-between">
+    <div>
+      <!-- Header Gradient สดใสโทน LINE & Modern Indigo -->
+      <header class="relative overflow-hidden rounded-b-[2rem] bg-gradient-to-br from-emerald-500 via-teal-600 to-indigo-700 px-6 pb-7 pt-7 text-white shadow-lg">
+        <div class="relative z-10 flex items-center gap-3.5">
+          <img id="avatar" class="hidden h-12 w-12 rounded-full border-2 border-white/80 shadow-md object-cover" alt="รูปโปรไฟล์">
+          <div>
+            <h1 id="greeting" class="text-lg font-bold tracking-tight">ระบบแจ้งซ่อม</h1>
+            <p class="mt-0.5 text-xs text-emerald-100 font-light">แจ้งปัญหาและติดตามผลงานได้ตลอด 24 ชม.</p>
+          </div>
         </div>
-      </div>
-      <div id="connection-box" class="mt-3 flex items-center justify-between rounded-lg bg-white/10 px-3 py-2 text-xs">
-        <span id="connection">กำลังเชื่อมต่อกับ LINE...</span>
-        <button id="login-button" type="button" onclick="loginLine()" class="hidden rounded bg-white px-2 py-1 font-bold text-indigo-800">เข้าสู่ระบบ</button>
-      </div>
-      <div id="user-info-badge" class="mt-1 hidden text-[11px] text-indigo-200">
-        LINE UID: <span id="display-uid" class="font-mono text-white"></span>
-      </div>
-    </header>
 
-    <section id="home" class="space-y-4 p-5">
-      <h2 class="text-sm font-bold">เลือกบริการที่ต้องการ</h2>
-      <button class="menu-button" type="button" onclick="showView('building')">
-        <span class="menu-icon bg-indigo-50">🏢</span>
-        <span><b>แจ้งซ่อมอาคาร / สถานที่</b><small>ไฟฟ้า ประปา ประตู งานโยธา และพื้นที่ส่วนกลาง</small></span>
-      </button>
-      <button class="menu-button" type="button" onclick="showView('equipment')">
-        <span class="menu-icon bg-blue-50">💻</span>
-        <span><b>แจ้งซ่อมครุภัณฑ์ / อุปกรณ์</b><small>แจ้งอาการเสีย พร้อมข้อมูลอุปกรณ์</small></span>
-      </button>
-      <button class="menu-button" type="button" onclick="openStatus()">
-        <span class="menu-icon bg-emerald-50">🔍</span>
-        <span><b>ตรวจสอบสถานะงาน</b><small>ดูรายการของฉัน หรือค้นหาด้วยเลขที่ใบงาน</small></span>
-      </button>
-    </section>
+        <div id="connection-box" class="relative z-10 mt-4 flex items-center justify-between rounded-xl bg-white/15 backdrop-blur-md px-3.5 py-2 text-xs border border-white/10">
+          <span id="connection" class="flex items-center gap-1.5 font-medium">
+            <span class="inline-block h-2 w-2 rounded-full bg-emerald-300 animate-pulse"></span>
+            กำลังเชื่อมต่อกับ LINE...
+          </span>
+          <button id="login-button" type="button" onclick="loginLine()" class="hidden rounded-lg bg-white px-3 py-1 font-bold text-emerald-700 shadow-sm hover:bg-emerald-50">เข้าสู่ระบบ</button>
+        </div>
 
-    <section id="building" class="hidden space-y-4 p-5">
-      <div class="flex items-center justify-between border-b pb-3">
-        <h2 class="font-bold text-indigo-700">🏢 แจ้งซ่อมอาคาร / สถานที่</h2>
-        <button type="button" onclick="showView('home')" class="text-xs underline">กลับ</button>
-      </div>
-      <input id="b-name" class="form-input" maxlength="120" placeholder="ชื่อ-นามสกุล">
-      <input id="b-dept" class="form-input" maxlength="120" placeholder="หน่วยงาน / แผนก">
-      <input id="b-phone" class="form-input" maxlength="40" placeholder="เบอร์โทรภายใน (ไม่บังคับ)">
-      <label class="label">อาคาร / สถานที่
-        <select id="b-location" class="form-input mt-1">
-          <option>อาคารสำนักงาน</option>
-          <option>อาคารซ่อมท่อ</option>
-          <option>อาคารคลังพัสดุ</option>
-          <option>โรงอาหาร</option>
-        </select>
-      </label>
-      <input id="b-area" class="form-input" maxlength="200" placeholder="บริเวณ / ห้อง เช่น ชั้น 2 ทางเดิน">
-      <label class="label">หมวดหมู่
-        <select id="b-category" class="form-input mt-1">
-          <option value="🚰 ระบบประปา / ท่อรั่วซึม">🚰 ระบบประปา / ท่อรั่วซึม</option>
-          <option value="💡 ระบบไฟฟ้าแสงสว่าง / ปลั๊กไฟ / เบรกเกอร์">💡 ระบบไฟฟ้าแสงสว่าง / ปลั๊กไฟ / เบรกเกอร์</option>
-          <option value="🚪 ประตู / หน้าต่าง / กลอน / ลูกบิด">🚪 ประตู / หน้าต่าง / กลอน / ลูกบิด</option>
-          <option value="🧱 งานโยธา / ฝ้าเพดาน / หลังคา / พื้น / ผนัง">🧱 งานโยธา / ฝ้าเพดาน / หลังคา / พื้น / ผนัง</option>
-          <option value="🌿 ภูมิทัศน์ / ความสะอาด / ทางเดิน">🌿 ภูมิทัศน์ / ความสะอาด / ทางเดิน</option>
-        </select>
-      </label>
-      <textarea id="b-detail" class="form-input min-h-24" maxlength="2000" placeholder="รายละเอียดอาการ / ความเสียหาย"></textarea>
-      <fieldset class="space-y-2">
-        <legend class="label mb-2">ระดับความเร่งด่วน</legend>
-        <label class="radio-card"><input type="radio" name="b-urgency" value="ปกติ" checked> 🟢 ปกติ</label>
-        <label class="radio-card"><input type="radio" name="b-urgency" value="เร่งด่วน"> 🟡 เร่งด่วน</label>
-        <label class="radio-card"><input type="radio" name="b-urgency" value="เร่งด่วนมาก"> 🔴 เร่งด่วนมาก</label>
-      </fieldset>
-      <div class="space-y-2">
-        <h3 class="text-xs font-bold">รูปถ่ายหน้างาน (ไม่เกิน 3 รูป)</h3>
-        <p class="text-xs text-slate-500">เลือกถ่ายรูปหรือเลือกรูปจากเครื่อง ระบบจะย่อภาพก่อนส่ง</p>
-        <input id="b-images" type="file" accept="image/*" capture="environment" multiple
-          class="block w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-xs">
-        <p id="b-image-info" class="text-xs text-slate-500"></p>
-      </div>
-      <button id="b-submit" type="button" onclick="submitTicket('building')"
-        class="w-full rounded-xl bg-indigo-600 py-3 font-bold text-white shadow">
-        ส่งแจ้งซ่อมอาคาร
-      </button>
-    </section>
+        <!-- กล่องคำแนะนำสำหรับผู้แจ้ง เปลี่ยนจากรหัส UID -->
+        <div class="relative z-10 mt-3 rounded-xl bg-amber-400/20 border border-amber-300/30 p-2.5 backdrop-blur-sm">
+          <p class="text-[11px] leading-relaxed text-amber-100">
+            💡 <span class="font-semibold text-white">คำแนะนำ:</span> กรุณาตรวจสอบหรือพิมพ์ชื่อ-นามสกุลจริงของผู้แจ้ง เพื่อให้ทีมช่างประสานงานและติดต่อกลับได้อย่างถูกต้อง
+          </p>
+        </div>
+      </header>
 
-    <section id="equipment" class="hidden space-y-4 p-5">
-      <div class="flex items-center justify-between border-b pb-3">
-        <h2 class="font-bold text-blue-700">💻 แจ้งซ่อมครุภัณฑ์ / อุปกรณ์</h2>
-        <button type="button" onclick="showView('home')" class="text-xs underline">กลับ</button>
-      </div>
-      <input id="e-name" class="form-input" maxlength="120" placeholder="ชื่อ-นามสกุล">
-      <input id="e-dept" class="form-input" maxlength="120" placeholder="หน่วยงาน / แผนก">
-      <input id="e-phone" class="form-input" maxlength="40" placeholder="เบอร์โทรภายใน (ไม่บังคับ)">
-      <label class="label">ประเภทอุปกรณ์
-        <select id="e-category" class="form-input mt-1">
-          <option>เครื่องปรับอากาศ</option>
-          <option>โทรศัพท์</option>
-          <option>อุปกรณ์สำนักงาน</option>
-          <option>อื่น ๆ</option>
-        </select>
-      </label>
-      <input id="e-device" class="form-input" maxlength="150" placeholder="ชื่อหรือรุ่นอุปกรณ์">
-      <div class="space-y-2">
-        <label for="e-asset" class="label">รหัสครุภัณฑ์ (ไม่บังคับ — กรอกเองหรือสแกน 10 หลัก)</label>
+      <!-- ส่วนหน้าหลัก -->
+      <section id="home" class="space-y-4 p-5">
+        <div class="flex items-center justify-between pt-1">
+          <h2 class="text-sm font-bold text-slate-700 tracking-wide">เลือกประเภทงานบริการ</h2>
+          <span class="text-[11px] text-slate-400">เลือกบริการด้านล่าง</span>
+        </div>
+
+        <button class="menu-button border-emerald-100/80 hover:border-emerald-300 hover:shadow-emerald-500/5 group" type="button" onclick="showView('building')">
+          <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-2xl text-white shadow-md shadow-emerald-500/20 group-hover:scale-105 transition">🏢</span>
+          <span class="flex-1">
+            <b class="text-slate-800 text-sm group-hover:text-emerald-600 transition">แจ้งซ่อมอาคาร / สถานที่</b>
+            <small class="text-xs text-slate-500 font-light block mt-0.5">ระบบประปา ไฟฟ้า ประตู งานโยธา และบริเวณพื้นที่</small>
+          </span>
+          <span class="text-slate-300 group-hover:text-emerald-500 transition text-lg font-bold">›</span>
+        </button>
+
+        <button class="menu-button border-sky-100/80 hover:border-sky-300 hover:shadow-sky-500/5 group" type="button" onclick="showView('equipment')">
+          <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-500 text-2xl text-white shadow-md shadow-sky-500/20 group-hover:scale-105 transition">💻</span>
+          <span class="flex-1">
+            <b class="text-slate-800 text-sm group-hover:text-sky-600 transition">แจ้งซ่อมครุภัณฑ์ / อุปกรณ์</b>
+            <small class="text-xs text-slate-500 font-light block mt-0.5">แอร์ โทรศัพท์ คอมพิวเตอร์ และอุปกรณ์สำนักงาน</small>
+          </span>
+          <span class="text-slate-300 group-hover:text-sky-500 transition text-lg font-bold">›</span>
+        </button>
+
+        <button class="menu-button border-violet-100/80 hover:border-violet-300 hover:shadow-violet-500/5 group" type="button" onclick="openStatus()">
+          <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-violet-500 to-purple-500 text-2xl text-white shadow-md shadow-violet-500/20 group-hover:scale-105 transition">🔍</span>
+          <span class="flex-1">
+            <b class="text-slate-800 text-sm group-hover:text-violet-600 transition">ตรวจสอบสถานะงาน</b>
+            <small class="text-xs text-slate-500 font-light block mt-0.5">ค้นหาด้วยเลขที่ใบงาน หรือดูประวัติงานแจ้งซ่อมของฉัน</small>
+          </span>
+          <span class="text-slate-300 group-hover:text-violet-500 transition text-lg font-bold">›</span>
+        </button>
+      </section>
+
+      <!-- ส่วนแจ้งซ่อมอาคาร -->
+      <section id="building" class="hidden space-y-4 p-5">
+        <div class="flex items-center justify-between border-b pb-3.5">
+          <div class="flex items-center gap-2">
+            <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 text-sm font-bold">🏢</span>
+            <h2 class="font-bold text-slate-800 text-base">แจ้งซ่อมอาคาร / สถานที่</h2>
+          </div>
+          <button type="button" onclick="showView('home')" class="text-xs font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition">← กลับ</button>
+        </div>
+
+        <div>
+          <label class="label">ชื่อ-นามสกุล ผู้แจ้งซ่อม <span class="text-rose-500">*</span></label>
+          <input id="b-name" class="form-input" maxlength="120" placeholder="ชื่อ-นามสกุลจริง เพื่อให้ช่างติดต่อได้">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="label">หน่วยงาน / แผนก <span class="text-rose-500">*</span></label>
+            <input id="b-dept" class="form-input" maxlength="120" placeholder="เช่น กองช่าง">
+          </div>
+          <div>
+            <label class="label">เบอร์โทรภายใน</label>
+            <input id="b-phone" class="form-input" maxlength="40" placeholder="เช่น 1204">
+          </div>
+        </div>
+        <label class="label">อาคาร / สถานที่ <span class="text-rose-500">*</span>
+          <select id="b-location" class="form-input mt-1">
+            <option>อาคารสำนักงาน</option>
+            <option>อาคารซ่อมท่อ</option>
+            <option>อาคารคลังพัสดุ</option>
+            <option>โรงอาหาร</option>
+          </select>
+        </label>
+        <div>
+          <label class="label">บริเวณ / ห้อง <span class="text-rose-500">*</span></label>
+          <input id="b-area" class="form-input" maxlength="200" placeholder="เช่น ชั้น 2 ห้องประชุม 1 หรือ โถงทางเดิน">
+        </div>
+        <label class="label">หมวดหมู่งาน <span class="text-rose-500">*</span>
+          <select id="b-category" class="form-input mt-1">
+            <option value="🚰 ระบบประปา / ท่อรั่วซึม">🚰 ระบบประปา / ท่อรั่วซึม</option>
+            <option value="💡 ระบบไฟฟ้าแสงสว่าง / ปลั๊กไฟ / เบรกเกอร์">💡 ระบบไฟฟ้าแสงสว่าง / ปลั๊กไฟ / เบรกเกอร์</option>
+            <option value="🚪 ประตู / หน้าต่าง / กลอน / ลูกบิด">🚪 ประตู / หน้าต่าง / กลอน / ลูกบิด</option>
+            <option value="🧱 งานโยธา / ฝ้าเพดาน / หลังคา / พื้น / ผนัง">🧱 งานโยธา / ฝ้าเพดาน / หลังคา / พื้น / ผนัง</option>
+            <option value="🌿 ภูมิทัศน์ / ความสะอาด / ทางเดิน">🌿 ภูมิทัศน์ / ความสะอาด / ทางเดิน</option>
+          </select>
+        </label>
+        <div>
+          <label class="label">รายละเอียดอาการ / ความเสียหาย <span class="text-rose-500">*</span></label>
+          <textarea id="b-detail" class="form-input min-h-24 resize-none" maxlength="2000" placeholder="อธิบายจุดที่ชำรุด หรืออาการที่พบให้ชัดเจน"></textarea>
+        </div>
+        <fieldset class="space-y-1.5">
+          <legend class="label">ระดับความเร่งด่วน</legend>
+          <div class="grid grid-cols-3 gap-2">
+            <label class="radio-card justify-center text-center"><input type="radio" name="b-urgency" value="ปกติ" checked class="hidden"> 🟢 ปกติ</label>
+            <label class="radio-card justify-center text-center"><input type="radio" name="b-urgency" value="เร่งด่วน" class="hidden"> 🟡 ด่วน</label>
+            <label class="radio-card justify-center text-center"><input type="radio" name="b-urgency" value="เร่งด่วนมาก" class="hidden"> 🔴 ด่วนมาก</label>
+          </div>
+        </fieldset>
+        <div class="space-y-2 rounded-2xl bg-slate-50 p-3.5 border border-slate-100">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-semibold text-slate-700">รูปถ่ายหน้างาน (ไม่เกิน 3 รูป)</h3>
+            <span class="text-[10px] text-slate-400">ระบบจะย่อภาพอัตโนมัติ</span>
+          </div>
+          <input id="b-images" type="file" accept="image/*" capture="environment" multiple
+            class="block w-full rounded-xl border border-dashed border-slate-300 bg-white p-2.5 text-xs text-slate-600 file:mr-2.5 file:rounded-lg file:border-0 file:bg-emerald-500 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-white hover:file:bg-emerald-600">
+          <p id="b-image-info" class="text-xs font-medium text-emerald-600"></p>
+        </div>
+        <button id="b-submit" type="button" onclick="submitTicket('building')"
+          class="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 py-3.5 font-bold text-white shadow-lg shadow-emerald-500/25 active:scale-[0.99] transition">
+          ส่งคำขอแจ้งซ่อมอาคาร
+        </button>
+      </section>
+
+      <!-- ส่วนแจ้งซ่อมครุภัณฑ์ -->
+      <section id="equipment" class="hidden space-y-4 p-5">
+        <div class="flex items-center justify-between border-b pb-3.5">
+          <div class="flex items-center gap-2">
+            <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100 text-sky-700 text-sm font-bold">💻</span>
+            <h2 class="font-bold text-slate-800 text-base">แจ้งซ่อมครุภัณฑ์ / อุปกรณ์</h2>
+          </div>
+          <button type="button" onclick="showView('home')" class="text-xs font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition">← กลับ</button>
+        </div>
+
+        <div>
+          <label class="label">ชื่อ-นามสกุล ผู้แจ้งซ่อม <span class="text-rose-500">*</span></label>
+          <input id="e-name" class="form-input" maxlength="120" placeholder="ชื่อ-นามสกุลจริง เพื่อให้ช่างติดต่อได้">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="label">หน่วยงาน / แผนก <span class="text-rose-500">*</span></label>
+            <input id="e-dept" class="form-input" maxlength="120" placeholder="เช่น การเงิน">
+          </div>
+          <div>
+            <label class="label">เบอร์โทรภายใน</label>
+            <input id="e-phone" class="form-input" maxlength="40" placeholder="เช่น 2105">
+          </div>
+        </div>
+        <label class="label">ประเภทอุปกรณ์ <span class="text-rose-500">*</span>
+          <select id="e-category" class="form-input mt-1">
+            <option>เครื่องปรับอากาศ</option>
+            <option>โทรศัพท์</option>
+            <option>อุปกรณ์สำนักงาน</option>
+            <option>อื่น ๆ</option>
+          </select>
+        </label>
+        <div>
+          <label class="label">ชื่อหรือรุ่นอุปกรณ์ <span class="text-rose-500">*</span></label>
+          <input id="e-device" class="form-input" maxlength="150" placeholder="เช่น คอมพิวเตอร์ All-in-one หรือ แอร์แขวน">
+        </div>
+        <div class="space-y-1.5">
+          <label for="e-asset" class="label flex justify-between">
+            <span>รหัสครุภัณฑ์ (ตัวเลข 10 หลัก)</span>
+            <span class="text-[11px] text-slate-400 font-normal">ไม่บังคับ</span>
+          </label>
+          <div class="flex gap-2">
+            <input id="e-asset" class="form-input min-w-0 flex-1 font-mono tracking-wider"
+              maxlength="10" inputmode="numeric" placeholder="10 หลัก เช่น 7440001234">
+            <button type="button" onclick="triggerScanAsset()"
+              class="shrink-0 flex items-center gap-1 rounded-xl bg-slate-800 px-3.5 text-xs font-semibold text-white shadow hover:bg-slate-700 active:scale-95 transition">
+              📷 สแกน
+            </button>
+          </div>
+          <div id="qr-reader" class="hidden overflow-hidden rounded-2xl border-2 border-dashed border-sky-400 bg-black mt-2"></div>
+          <div id="scanner-controls" class="hidden mt-2 text-right">
+            <button type="button" onclick="stopAssetScanner()" class="rounded-lg bg-rose-600 px-3 py-1 text-xs font-medium text-white shadow">ปิดกล้อง</button>
+          </div>
+          <p id="qr-message" class="text-xs text-sky-600 font-medium"></p>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="label">ยี่ห้อ / รุ่น</label>
+            <input id="e-brand" class="form-input" maxlength="150" placeholder="เช่น Daikin / Dell">
+          </div>
+          <div>
+            <label class="label">สถานที่ตั้งอุปกรณ์ <span class="text-rose-500">*</span></label>
+            <input id="e-location" class="form-input" maxlength="200" placeholder="เช่น ชั้น 3 ห้องบัญชี">
+          </div>
+        </div>
+        <div>
+          <label class="label">รายละเอียดอาการเสีย <span class="text-rose-500">*</span></label>
+          <textarea id="e-detail" class="form-input min-h-24 resize-none" maxlength="2000" placeholder="เช่น เปิดไม่ติด มีกลิ่นไหม้ หรือน้ำหยด"></textarea>
+        </div>
+        <fieldset class="space-y-1.5">
+          <legend class="label">ระดับความเร่งด่วน</legend>
+          <div class="grid grid-cols-3 gap-2">
+            <label class="radio-card justify-center text-center"><input type="radio" name="e-urgency" value="ปกติ" checked class="hidden"> 🟢 ปกติ</label>
+            <label class="radio-card justify-center text-center"><input type="radio" name="e-urgency" value="เร่งด่วน" class="hidden"> 🟡 ด่วน</label>
+            <label class="radio-card justify-center text-center"><input type="radio" name="e-urgency" value="เร่งด่วนมาก" class="hidden"> 🔴 ด่วนมาก</label>
+          </div>
+        </fieldset>
+        <fieldset class="space-y-1.5">
+          <legend class="label">สถานะการใช้งานปัจจุบัน</legend>
+          <div class="grid grid-cols-3 gap-2">
+            <label class="radio-card justify-center text-center"><input type="radio" name="e-device-status" value="ใช้งานได้" checked class="hidden"> ใช้งานได้</label>
+            <label class="radio-card justify-center text-center"><input type="radio" name="e-device-status" value="ใช้งานได้บางส่วน" class="hidden"> ได้บางส่วน</label>
+            <label class="radio-card justify-center text-center"><input type="radio" name="e-device-status" value="ใช้งานไม่ได้" class="hidden"> ไม่ได้</label>
+          </div>
+        </fieldset>
+        <div class="space-y-2 rounded-2xl bg-slate-50 p-3.5 border border-slate-100">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-semibold text-slate-700">รูปถ่ายอุปกรณ์ (ไม่เกิน 3 รูป)</h3>
+            <span class="text-[10px] text-slate-400">ระบบจะย่อภาพอัตโนมัติ</span>
+          </div>
+          <input id="e-images" type="file" accept="image/*" capture="environment" multiple
+            class="block w-full rounded-xl border border-dashed border-slate-300 bg-white p-2.5 text-xs text-slate-600 file:mr-2.5 file:rounded-lg file:border-0 file:bg-sky-500 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-white hover:file:bg-sky-600">
+          <p id="e-image-info" class="text-xs font-medium text-sky-600"></p>
+        </div>
+        <button id="e-submit" type="button" onclick="submitTicket('equipment')"
+          class="w-full rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 py-3.5 font-bold text-white shadow-lg shadow-sky-500/25 active:scale-[0.99] transition">
+          ส่งคำขอแจ้งซ่อมครุภัณฑ์
+        </button>
+      </section>
+
+      <!-- ส่วนตรวจสอบสถานะ -->
+      <section id="status" class="hidden space-y-4 p-5">
+        <div class="flex items-center justify-between border-b pb-3.5">
+          <div class="flex items-center gap-2">
+            <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100 text-violet-700 text-sm font-bold">🔍</span>
+            <h2 class="font-bold text-slate-800 text-base">ตรวจสอบสถานะงาน</h2>
+          </div>
+          <button type="button" onclick="showView('home')" class="text-xs font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition">← กลับ</button>
+        </div>
+
         <div class="flex gap-2">
-          <input id="e-asset" class="form-input min-w-0 flex-1"
-            maxlength="10" inputmode="numeric" placeholder="ตัวเลข 10 หลัก">
-          <button type="button" onclick="triggerScanAsset()"
-            class="shrink-0 rounded-lg bg-slate-800 px-3 text-xs font-semibold text-white hover:bg-slate-700">
-            สแกน
+          <input id="search-id" class="form-input min-w-0 flex-1 font-mono text-xs uppercase" placeholder="เช่น BLD-20261110-XXXXXX">
+          <button type="button" onclick="searchTicket()" class="rounded-xl bg-slate-900 px-4 text-xs font-semibold text-white shadow hover:bg-slate-800 transition">
+            ค้นหา
           </button>
         </div>
-        <div id="qr-reader" class="hidden overflow-hidden rounded-xl border border-slate-200"></div>
-        <div id="scanner-controls" class="hidden mt-2 text-right">
-          <button type="button" onclick="stopAssetScanner()" class="rounded bg-rose-600 px-3 py-1 text-xs text-white">ปิดกล้อง</button>
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-slate-400 font-light">รายการที่เคยแจ้ง</span>
+          <button type="button" onclick="loadMyTickets()" class="text-xs font-medium text-emerald-600 hover:underline">
+            ↻ โหลดงานของฉัน
+          </button>
         </div>
-        <p id="qr-message" class="text-xs text-slate-500"></p>
-      </div>
-      <input id="e-brand" class="form-input" maxlength="150" placeholder="ยี่ห้อ / รุ่น (ไม่บังคับ)">
-      <input id="e-location" class="form-input" maxlength="200" placeholder="สถานที่ตั้ง เช่น อาคาร / ชั้น / ห้อง">
-      <textarea id="e-detail" class="form-input min-h-24" maxlength="2000" placeholder="รายละเอียดอาการเสีย"></textarea>
-      <fieldset class="space-y-2">
-        <legend class="label mb-2">ระดับความเร่งด่วน</legend>
-        <label class="radio-card"><input type="radio" name="e-urgency" value="ปกติ" checked> 🟢 ปกติ</label>
-        <label class="radio-card"><input type="radio" name="e-urgency" value="เร่งด่วน"> 🟡 เร่งด่วน</label>
-        <label class="radio-card"><input type="radio" name="e-urgency" value="เร่งด่วนมาก"> 🔴 เร่งด่วนมาก</label>
-      </fieldset>
-      <fieldset class="space-y-2">
-        <legend class="label mb-2">สถานะการใช้งานอุปกรณ์</legend>
-        <label class="radio-card"><input type="radio" name="e-device-status" value="ใช้งานได้" checked> ใช้งานได้</label>
-        <label class="radio-card"><input type="radio" name="e-device-status" value="ใช้งานได้บางส่วน"> ใช้งานได้บางส่วน</label>
-        <label class="radio-card"><input type="radio" name="e-device-status" value="ใช้งานไม่ได้"> ใช้งานไม่ได้</label>
-      </fieldset>
-      <div class="space-y-2">
-        <h3 class="text-xs font-bold">รูปถ่ายอุปกรณ์ (ไม่เกิน 3 รูป)</h3>
-        <p class="text-xs text-slate-500">เลือกถ่ายรูปหรือเลือกรูปจากเครื่อง ระบบจะย่อภาพก่อนส่ง</p>
-        <input id="e-images" type="file" accept="image/*" capture="environment" multiple
-          class="block w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-xs">
-        <p id="e-image-info" class="text-xs text-slate-500"></p>
-      </div>
-      <button id="e-submit" type="button" onclick="submitTicket('equipment')"
-        class="w-full rounded-xl bg-blue-600 py-3 font-bold text-white shadow">
-        ส่งแจ้งซ่อมครุภัณฑ์
-      </button>
-    </section>
+        <div id="status-list" class="space-y-3"></div>
+      </section>
 
-    <section id="status" class="hidden space-y-4 p-5">
-      <div class="flex items-center justify-between border-b pb-3">
-        <h2 class="font-bold text-emerald-700">🔍 ตรวจสอบสถานะงาน</h2>
-        <button type="button" onclick="showView('home')" class="text-xs underline">กลับ</button>
-      </div>
-      <div class="flex gap-2">
-        <input id="search-id" class="form-input min-w-0 flex-1" placeholder="เลขที่ใบงาน เช่น BLD-20261110-XXXXXX">
-        <button type="button" onclick="searchTicket()" class="rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white">
-          ค้นหา
-        </button>
-      </div>
-      <button type="button" onclick="loadMyTickets()" class="text-xs font-semibold text-indigo-600 hover:underline">
-        ↻ โหลดรายการแจ้งซ่อมของฉัน
-      </button>
-      <div id="status-list" class="space-y-3"></div>
-    </section>
+      <!-- หน้ายืนยันส่งสำเร็จ -->
+      <section id="success" class="hidden p-7 text-center">
+        <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-4xl text-emerald-600 shadow-inner animate-bounce">
+          ✓
+        </div>
+        <h2 class="mt-4 text-xl font-bold text-slate-800">ส่งแจ้งซ่อมเรียบร้อย!</h2>
+        <p class="mt-1 text-xs text-slate-500">ข้อมูลถูกส่งตรงไปยังทีมงานช่างเรียบร้อยแล้ว</p>
+        
+        <div class="my-5 rounded-2xl bg-slate-50 border border-slate-100 p-4">
+          <p class="text-xs text-slate-400">เลขที่ใบงานของคุณ</p>
+          <p id="success-id" class="mt-1 font-mono text-lg font-bold text-emerald-700"></p>
+        </div>
 
-    <section id="success" class="hidden p-7 text-center">
-      <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl text-emerald-700">✓</div>
-      <h2 class="mt-4 text-lg font-bold">ส่งคำขอแจ้งซ่อมแล้ว</h2>
-      <p class="mt-2 text-sm text-slate-500">เลขที่ใบงาน</p>
-      <p id="success-id" class="mt-2 inline-block rounded-xl bg-indigo-50 px-4 py-2 text-lg font-black text-indigo-700"></p>
-      <p id="success-message" class="mt-3 text-xs text-slate-500"></p>
-      <button type="button" onclick="openStatus()" class="mt-5 w-full rounded-xl bg-indigo-600 py-3 font-bold text-white">ตรวจสอบสถานะ</button>
-      <button type="button" onclick="showView('home')" class="mt-3 w-full rounded-xl border py-3 font-semibold">กลับหน้าหลัก</button>
-    </section>
+        <p id="success-message" class="text-xs text-slate-500"></p>
+        
+        <div class="space-y-2 mt-6">
+          <button type="button" onclick="openStatus()" class="w-full rounded-2xl bg-slate-900 py-3.5 font-bold text-white shadow hover:bg-slate-800 transition">
+            ตรวจสอบสถานะงาน
+          </button>
+          <button type="button" onclick="showView('home')" class="w-full rounded-2xl border border-slate-200 py-3 font-medium text-slate-600 hover:bg-slate-50 transition">
+            กลับสู่หน้าหลัก
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer minimal -->
+    <footer class="py-4 text-center text-[11px] text-slate-400 border-t border-slate-100">
+      ระบบบริหารจัดการงานแจ้งซ่อมองค์กร © 2026
+    </footer>
   </main>
 
   <script>
@@ -286,11 +425,11 @@
     async function init() {
       const conn = document.getElementById('connection');
       const loginBtn = document.getElementById('login-button');
-      conn.textContent = 'กำลังเชื่อมต่อกับ LINE...';
+      conn.innerHTML = '<span class="inline-block h-2 w-2 rounded-full bg-emerald-300 animate-pulse"></span> กำลังเชื่อมต่อกับ LINE...';
 
       const timeoutId = setTimeout(() => {
         if (!lineUserId && !liff?.isLoggedIn?.()) {
-          conn.textContent = 'เชื่อมต่อนานผิดปกติ แตะที่นี่เพื่อรีเฟรช';
+          conn.textContent = 'เชื่อมต่อนานผิดปกติ แตะเพื่อรีเฟรช';
           conn.style.cursor = 'pointer';
           conn.onclick = () => window.location.reload();
         }
@@ -326,11 +465,7 @@
           document.getElementById('b-name').value = displayName;
           document.getElementById('e-name').value = displayName;
           
-          if (lineUserId) {
-            document.getElementById('display-uid').textContent = lineUserId;
-            document.getElementById('user-info-badge').classList.remove('hidden');
-          }
-
+          // ไม่แสดง UID แต่เก็บ lineUserId ไว้ใช้งาน
           if (profile.pictureUrl) {
             const avatar = document.getElementById('avatar');
             avatar.src = profile.pictureUrl;
@@ -340,7 +475,7 @@
           console.warn('โหลดโปรไฟล์ LINE ไม่สำเร็จ:', e);
         }
 
-        conn.textContent = 'เชื่อมต่อ LINE สำเร็จแล้ว';
+        conn.innerHTML = '✓ เชื่อมต่อ LINE สำเร็จ';
         clearTimeout(timeoutId);
       } catch (error) {
         clearTimeout(timeoutId);
@@ -685,30 +820,44 @@
       }
       tickets.forEach(function (ticket) {
         const card = document.createElement('article');
-        card.className = 'space-y-2 rounded-xl border border-slate-200 p-4 shadow-sm';
+        card.className = 'space-y-2.5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm hover:shadow-md transition';
+        
         const top = document.createElement('div');
         top.className = 'flex items-center justify-between gap-2';
+        
         const id = document.createElement('b');
-        id.className = 'text-xs text-indigo-700';
+        id.className = 'font-mono text-xs text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg';
         id.textContent = ticket.taskId || '';
+
+        // Tag สถานะสีสันสดใส
         const status = document.createElement('span');
-        status.className = 'rounded-full bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-700';
-        status.textContent = ticket.status || '';
+        const st = ticket.status || 'รอดำเนินการ';
+        let statusStyle = 'bg-amber-100 text-amber-800 border-amber-200';
+        if (st === 'กำลังดำเนินการ') statusStyle = 'bg-sky-100 text-sky-800 border-sky-200';
+        if (st === 'เสร็จสิ้น') statusStyle = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+
+        status.className = 'rounded-full px-2.5 py-0.5 text-[11px] font-semibold border ' + statusStyle;
+        status.textContent = st;
+
         const detail = document.createElement('p');
-        detail.className = 'text-sm font-semibold';
+        detail.className = 'text-sm font-semibold text-slate-800';
         detail.textContent = ticket.detail || '';
+
         const location = document.createElement('p');
-        location.className = 'text-xs text-slate-500';
-        location.textContent = [ticket.type, ticket.location, ticket.areaOrRoom].filter(Boolean).join(' · ');
+        location.className = 'text-xs text-slate-500 flex items-center gap-1.5';
+        location.innerHTML = '<span class="text-slate-400">📍</span> ' + [ticket.type, ticket.location, ticket.areaOrRoom].filter(Boolean).join(' · ');
+
         const date = document.createElement('p');
         date.className = 'text-[11px] text-slate-400';
-        date.textContent = 'วันที่แจ้ง: ' + (ticket.timestamp || '-');
+        date.textContent = 'แจ้งเมื่อ: ' + (ticket.timestamp || '-');
+
         top.append(id, status);
         card.append(top, detail, location, date);
+
         if (ticket.adminNote) {
-          const note = document.createElement('p');
-          note.className = 'rounded-lg bg-slate-50 p-2 text-xs text-slate-600';
-          note.textContent = 'หมายเหตุช่าง: ' + ticket.adminNote;
+          const note = document.createElement('div');
+          note.className = 'rounded-xl bg-slate-50 p-2.5 text-xs text-slate-600 border border-slate-100 flex items-start gap-1.5';
+          note.innerHTML = '<span class="text-emerald-500 font-bold">💬 ช่าง:</span> <span>' + ticket.adminNote + '</span>';
           card.appendChild(note);
         }
         container.appendChild(card);
