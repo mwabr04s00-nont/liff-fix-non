@@ -90,7 +90,7 @@
           </div>
         </section>
         <section class="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
-          <h2 class="text-sm font-bold text-slate-800">จำนวนงานอาคารแยกตามสถานที่</h2>
+          <h2 class="text-sm font-bold text-slate-800">จำนวนงานซ่อมแยกตามอาคาร/สถานที่</h2>
           <div id="building-bars" class="mt-5 space-y-3.5"></div>
         </section>
       </div>
@@ -314,14 +314,27 @@
       const locs = ['อาคารสำนักงาน', 'อาคารซ่อมท่อ', 'อาคารคลังพัสดุ', 'โรงอาหาร'];
       const bTickets = tickets.filter(t => t.type === 'อาคาร/สถานที่');
       const counts = locs.map(loc => ({ loc: loc, count: bTickets.filter(t => t.location === loc).length }));
-      const max = Math.max(1, ...counts.map(i => i.count));
+      
+      // เรียงจากมากไปน้อยเพื่อไล่สีความรุนแรง
+      const sorted = counts.sort((a, b) => b.count - a.count);
+      const max = Math.max(1, ...sorted.map(i => i.count));
       const c = document.getElementById('building-bars');
       c.replaceChildren();
-      counts.forEach(i => {
+
+      // ชุดสีแสดงความถี่ (จากมากไปน้อย: แดง/ส้ม -> ฟ้า/เขียว)
+      const colors = [
+        'from-rose-500 to-red-600',
+        'from-orange-400 to-amber-500',
+        'from-sky-400 to-blue-500',
+        'from-emerald-400 to-teal-500'
+      ];
+
+      sorted.forEach((i, idx) => {
         const r = document.createElement('div');
+        const colorClass = colors[idx] || colors[colors.length - 1];
         r.innerHTML = `
-          <div class="mb-1 flex justify-between text-xs"><span class="text-slate-600 font-medium truncate pr-2">${i.loc}</span><span class="font-bold text-indigo-700 whitespace-nowrap">${i.count} ใบงาน</span></div>
-          <div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-600" style="width: ${(i.count / max) * 100}%"></div></div>
+          <div class="mb-1 flex justify-between text-[13px]"><span class="text-slate-600 font-medium truncate pr-2">${i.loc}</span><span class="font-bold text-slate-700 whitespace-nowrap">${i.count} ใบงาน</span></div>
+          <div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r ${colorClass}" style="width: ${(i.count / max) * 100}%"></div></div>
         `;
         c.appendChild(r);
       });
@@ -353,42 +366,43 @@
       
       tickets.forEach(t => {
         const row = document.createElement('tr');
-        row.className = 'hover:bg-slate-50 transition';
-        row.appendChild(makeCell((t.taskId || '') + '\n' + (t.timestamp || ''), 'font-mono font-bold text-indigo-600 whitespace-pre-line text-[15px]'));
+        row.className = 'hover:bg-slate-50 transition text-[13px] text-slate-700';
+        row.appendChild(makeCell((t.taskId || '') + '\n' + (t.timestamp || ''), 'font-mono font-bold text-indigo-600 whitespace-pre-line text-[13px]'));
         row.appendChild(makeCell(t.type || ''));
         row.appendChild(makeCell((t.reporterName || '') + '\n' + (t.department || '') + '\nภายใน: ' + (t.internalPhone || '-'), 'whitespace-pre-line'));
-        row.appendChild(makeCell((t.location || '') + (t.areaOrRoom ? '\n' + t.areaOrRoom : ''), 'whitespace-pre-line font-medium text-slate-700'));
+        row.appendChild(makeCell((t.location || '') + (t.areaOrRoom ? '\n' + t.areaOrRoom : ''), 'whitespace-pre-line font-medium text-slate-800'));
         row.appendChild(makeCell((t.category ? t.category + '\n' : '') + (t.detail || ''), 'max-w-xs whitespace-pre-line'));
         
-        const urgCell = document.createElement('td'); urgCell.className = 'table-cell';
-        const urg = t.urgency || 'ปกติ'; let uc = 'bg-slate-100 text-slate-700';
-        if (urg === 'เร่งด่วน') uc = 'bg-amber-100 text-amber-800 font-bold';
-        if (urg === 'เร่งด่วนมาก') uc = 'bg-rose-100 text-rose-800 font-bold';
-        urgCell.innerHTML = `<span class="px-3 py-1.5 rounded-lg text-sm border ${uc}">${urg}</span>`;
+        const urgCell = document.createElement('td'); urgCell.className = 'table-cell text-center align-middle';
+        const urg = t.urgency || 'ปกติ'; 
+        let uc = 'bg-slate-50 border-slate-200'; let icon = '🟢';
+        if (urg === 'เร่งด่วน') { uc = 'bg-amber-50 border-amber-200 shadow-amber-500/20'; icon = '🟡'; }
+        if (urg === 'เร่งด่วนมาก') { uc = 'bg-rose-50 border-rose-200 shadow-rose-500/20'; icon = '🔴'; }
+        urgCell.innerHTML = `<div title="ความเร่งด่วน: ${urg}" class="flex items-center justify-center w-9 h-9 mx-auto rounded-xl border ${uc} cursor-help shadow-sm text-lg transition hover:scale-110">${icon}</div>`;
         row.appendChild(urgCell);
 
         const imgCell = document.createElement('td'); imgCell.className = 'table-cell';
         if (t.imageUrls) {
           t.imageUrls.split(',').forEach((url, i) => {
             const a = document.createElement('a'); a.href = url.trim(); a.target = '_blank'; a.rel = 'noopener noreferrer';
-            a.className = 'inline-block mr-1.5 text-sm font-medium text-sky-600 hover:underline'; a.textContent = 'รูป ' + (i + 1); imgCell.appendChild(a);
+            a.className = 'inline-block mr-1.5 text-[13px] font-medium text-sky-600 hover:underline'; a.textContent = 'รูป ' + (i + 1); imgCell.appendChild(a);
           });
         } else imgCell.textContent = '-';
         row.appendChild(imgCell);
 
         const stCell = document.createElement('td'); stCell.className = 'table-cell';
-        const stSel = document.createElement('select'); stSel.className = 'field min-w-36 text-sm font-semibold';
+        const stSel = document.createElement('select'); stSel.className = 'field min-w-32 text-[13px] font-semibold py-1.5 px-2';
         ['รอดำเนินการ', 'กำลังดำเนินการ', 'เสร็จสิ้น'].forEach(s => {
           const opt = document.createElement('option'); opt.value = s; opt.textContent = s; opt.selected = s === t.status; stSel.appendChild(opt);
         });
         stCell.appendChild(stSel); row.appendChild(stCell);
 
         const noteCell = document.createElement('td'); noteCell.className = 'table-cell';
-        const noteInp = document.createElement('textarea'); noteInp.className = 'field min-w-44 text-sm resize-none'; noteInp.rows = 2; noteInp.maxLength = 1000; noteInp.value = t.adminNote || ''; noteInp.placeholder = 'หมายเหตุช่าง';
+        const noteInp = document.createElement('textarea'); noteInp.className = 'field min-w-44 text-[13px] resize-none py-1.5 px-2'; noteInp.rows = 2; noteInp.maxLength = 1000; noteInp.value = t.adminNote || ''; noteInp.placeholder = 'หมายเหตุช่าง';
         noteCell.appendChild(noteInp); row.appendChild(noteCell);
 
         const actCell = document.createElement('td'); actCell.className = 'table-cell';
-        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white hover:bg-slate-800 active:scale-95 transition'; btn.textContent = 'บันทึก';
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'rounded-xl bg-slate-900 px-3.5 py-1.5 font-semibold text-white text-[13px] hover:bg-slate-800 active:scale-95 transition'; btn.textContent = 'บันทึก';
         btn.addEventListener('click', () => updateTicket(t.taskId, stSel.value, noteInp.value));
         actCell.appendChild(btn); row.appendChild(actCell);
 
