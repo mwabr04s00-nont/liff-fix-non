@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Safety Admin Dashboard - ระบบบริหารความปลอดภัย & Near Miss</title>
-  <!-- โหลด Google Fonts: Prompt -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -14,22 +13,20 @@
     .field {
       width: 100%;
       border: 1.5px solid #e2e8f0;
-      border-radius: .65rem;
-      padding: .55rem .75rem;
-      font-size: .825rem;
+      border-radius: .75rem;
+      padding: .75rem .9rem;
+      font-size: .95rem;
       background: white;
       transition: all 0.2s;
     }
-    .field:focus {
-      outline: none;
-      border-color: #dc2626;
-      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
-    }
+    .field:focus { outline: none; border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15); }
     .table-cell { padding: .85rem; vertical-align: top; }
   </style>
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-800 selection:bg-rose-500 selection:text-white">
-  <!-- Modal สำหรับกรอก PIN เข้าใช้งานแดชบอร์ด จป./คปอ. -->
+
+  <div id="toast" class="fixed bottom-5 right-5 z-[60] hidden max-w-sm rounded-2xl bg-slate-900/95 backdrop-blur-sm px-5 py-4 text-sm font-medium text-white shadow-xl border border-white/10"></div>
+
   <div id="pin-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
     <form id="pin-form" class="w-full max-w-sm space-y-4 rounded-3xl bg-white p-7 shadow-2xl border border-slate-100">
       <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-2xl text-rose-600">🛡️</div>
@@ -45,18 +42,18 @@
     </form>
   </div>
 
-  <!-- Header สไตล์ Safety Officer & คปอ. -->
   <header class="bg-gradient-to-r from-slate-950 via-rose-950 to-slate-950 px-6 py-4 text-white shadow-md border-b border-rose-900/30">
     <div class="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
-        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/20 border border-rose-400/30 text-xl">⚠️</span>
+        <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-500/20 border border-rose-400/30 text-2xl">⚠️</span>
         <div>
-          <h1 class="text-base font-bold tracking-tight">ศูนย์บริหารจัดการความปลอดภัย & Near Miss</h1>
-          <p class="text-[11px] text-rose-200 font-light">Safety Dashboard สำหรับ จป. และ คณะกรรมการ คปอ.</p>
+          <h1 class="text-xl font-bold tracking-tight">ศูนย์บริหารจัดการความปลอดภัย & Near Miss</h1>
+          <p class="text-sm text-rose-200 font-light">Safety Dashboard สำหรับ จป. และ คณะกรรมการ คปอ.</p>
         </div>
       </div>
       <div class="flex gap-2">
-        <button id="refresh-button" type="button" class="rounded-xl bg-white/10 border border-white/10 px-4 py-2 text-xs font-medium hover:bg-white/20 transition">↻ รีเฟรช</button>
+        <button id="refresh-button" type="button" class="rounded-xl bg-white/10 border border-white/10 px-4 py-2 text-sm font-medium hover:bg-white/20 transition">↻ รีเฟรช</button>
+        <button id="new-button" type="button" class="rounded-xl bg-rose-600 hover:bg-rose-700 px-4 py-2 text-sm font-bold text-white shadow-md shadow-rose-600/25 transition">+ เพิ่มรายการจุดเสี่ยง</button>
       </div>
     </div>
   </header>
@@ -65,106 +62,65 @@
     <div id="page-error" class="hidden whitespace-pre-wrap rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"></div>
 
     <section id="dashboard-content" class="space-y-5">
-      <!-- การ์ดตัวเลขสรุปผลความปลอดภัย -->
       <div class="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
         <div class="rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 p-5 text-white shadow-md">
-          <div class="flex items-center justify-between text-slate-300 text-xs">
-            <span>รายงานจุดเสี่ยงทั้งหมด</span>
-            <span class="rounded-lg bg-white/20 px-2 py-0.5 text-[10px]">Total</span>
-          </div>
+          <div class="flex items-center justify-between text-slate-300 text-xs"><span>รายงานจุดเสี่ยงทั้งหมด</span><span class="rounded-lg bg-white/20 px-2 py-0.5 text-[10px]">Total</span></div>
           <p id="stat-total" class="mt-2 text-3xl font-extrabold tracking-tight">0</p>
         </div>
         <div class="rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 p-5 text-white shadow-md shadow-rose-500/15">
-          <div class="flex items-center justify-between text-rose-100 text-xs">
-            <span>ความเสี่ยง วิกฤต/สูง</span>
-            <span class="rounded-lg bg-white/20 px-2 py-0.5 text-[10px]">Critical</span>
-          </div>
+          <div class="flex items-center justify-between text-rose-100 text-xs"><span>ความเสี่ยง วิกฤต/สูง</span><span class="rounded-lg bg-white/20 px-2 py-0.5 text-[10px]">Critical</span></div>
           <p id="stat-critical" class="mt-2 text-3xl font-extrabold tracking-tight">0</p>
         </div>
         <div class="rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 p-5 text-white shadow-md shadow-amber-500/15">
-          <div class="flex items-center justify-between text-amber-100 text-xs">
-            <span>รอดำเนินการ / แก้ไข</span>
-            <span class="rounded-lg bg-white/20 px-2 py-0.5 text-[10px]">Action Req.</span>
-          </div>
+          <div class="flex items-center justify-between text-amber-100 text-xs"><span>รอดำเนินการ / แก้ไข</span><span class="rounded-lg bg-white/20 px-2 py-0.5 text-[10px]">Action Req.</span></div>
           <p id="stat-pending" class="mt-2 text-3xl font-extrabold tracking-tight">0</p>
         </div>
         <div class="rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-5 text-white shadow-md shadow-emerald-500/15">
-          <div class="flex items-center justify-between text-emerald-100 text-xs">
-            <span>ควบคุมเสร็จสิ้น</span>
-            <span class="rounded-lg bg-white/20 px-2 py-0.5 text-[10px]">Resolved</span>
-          </div>
+          <div class="flex items-center justify-between text-emerald-100 text-xs"><span>ควบคุมเสร็จสิ้น</span><span class="rounded-lg bg-white/20 px-2 py-0.5 text-[10px]">Resolved</span></div>
           <p id="stat-done" class="mt-2 text-3xl font-extrabold tracking-tight">0</p>
         </div>
       </div>
 
-      <!-- สถิติระดับความเสี่ยง และ กราฟแท่งสถานะ -->
       <div class="grid gap-4 lg:grid-cols-3">
         <section class="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
-          <div class="flex items-center justify-between">
-            <h2 class="text-sm font-bold text-slate-800">สัดส่วนระดับความเสี่ยง (Risk Matrix)</h2>
-            <span class="text-xs text-slate-400">ภาพรวมความรุนแรง</span>
-          </div>
+          <div class="flex items-center justify-between"><h2 class="text-sm font-bold text-slate-800">สัดส่วนระดับความเสี่ยง (Risk Matrix)</h2><span class="text-xs text-slate-400">ภาพรวมความรุนแรง</span></div>
           <div class="mt-5 flex flex-wrap items-center gap-7">
             <div id="risk-pie" class="h-44 w-44 rounded-full shadow-inner" aria-label="กราฟวงกลมระดับความเสี่ยง"></div>
             <div id="risk-legend" class="space-y-2 text-xs"></div>
           </div>
         </section>
 
-        <!-- เพิ่มกราฟสถานที่เกิดเหตุ 5 อันดับแรก -->
         <section class="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
-          <div class="flex items-center justify-between">
-            <h2 class="text-sm font-bold text-slate-800">5 อันดับสถานที่เกิดเหตุบ่อยสุด</h2>
-            <span class="text-xs text-slate-400">พื้นที่เฝ้าระวัง</span>
-          </div>
+          <div class="flex items-center justify-between"><h2 class="text-sm font-bold text-slate-800">5 อันดับสถานที่เกิดเหตุบ่อยสุด</h2><span class="text-xs text-slate-400">พื้นที่เฝ้าระวัง</span></div>
           <div id="location-bars" class="mt-5 space-y-3.5"></div>
         </section>
 
         <section class="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
-          <div class="flex items-center justify-between">
-            <h2 class="text-sm font-bold text-slate-800">จุดเสี่ยงจำแนกตามสถานะการจัดการ</h2>
-            <span class="text-xs text-slate-400">สถานะมาตรการ</span>
-          </div>
+          <div class="flex items-center justify-between"><h2 class="text-sm font-bold text-slate-800">จุดเสี่ยงจำแนกตามสถานะการจัดการ</h2><span class="text-xs text-slate-400">สถานะมาตรการ</span></div>
           <div id="status-bars" class="mt-5 space-y-4"></div>
         </section>
       </div>
 
-      <!-- แผงค้นหาและตัวกรอง -->
       <section class="overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-100">
         <div class="grid gap-3 border-b border-slate-100 bg-slate-50/70 p-4 sm:grid-cols-2 lg:grid-cols-4">
           <input id="filter-search" class="field" placeholder="🔍 ค้นหารหัส / ผู้รายงาน / จุดที่พบ / รายละเอียด">
           <select id="filter-risk" class="field">
-            <option value="">ทุกระดับความเสี่ยง</option>
-            <option value="วิกฤต">🔴 วิกฤต</option>
-            <option value="สูง">🟠 สูง</option>
-            <option value="ปานกลาง">🟡 ปานกลาง</option>
-            <option value="ต่ำ">🟢 ต่ำ</option>
+            <option value="">ทุกระดับความเสี่ยง</option><option value="วิกฤต">🔴 วิกฤต</option><option value="สูง">🟠 สูง</option><option value="ปานกลาง">🟡 ปานกลาง</option><option value="ต่ำ">🟢 ต่ำ</option>
           </select>
           <select id="filter-status" class="field">
-            <option value="">ทุกสถานะ</option>
-            <option value="รอดำเนินการ">รอดำเนินการ</option>
-            <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
-            <option value="เสร็จสิ้น">เสร็จสิ้น</option>
+            <option value="">ทุกสถานะ</option><option value="รอดำเนินการ">รอดำเนินการ</option><option value="กำลังดำเนินการ">กำลังดำเนินการ</option><option value="เสร็จสิ้น">เสร็จสิ้น</option>
           </select>
           <input id="filter-department" class="field" placeholder="กรองตามหน่วยงาน">
-          <label class="text-[11px] text-slate-500 font-medium">
-            วันที่เริ่มต้น
-            <input id="filter-from" type="date" class="field mt-1">
-          </label>
-          <label class="text-[11px] text-slate-500 font-medium">
-            วันที่สิ้นสุด
-            <input id="filter-to" type="date" class="field mt-1">
-          </label>
+          <label class="text-xs text-slate-500 font-medium">วันที่เริ่มต้น<input id="filter-from" type="date" class="field mt-1"></label>
+          <label class="text-xs text-slate-500 font-medium">วันที่สิ้นสุด<input id="filter-to" type="date" class="field mt-1"></label>
           <div class="flex items-end sm:col-span-2">
-            <button id="clear-filters" type="button" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition">
-              ล้างตัวกรองทั้งหมด
-            </button>
+            <button id="clear-filters" type="button" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">ล้างตัวกรองทั้งหมด</button>
           </div>
         </div>
 
-        <!-- ตารางข้อมูล Near Miss -->
         <div class="overflow-x-auto">
-          <table class="min-w-[1600px] w-full text-left text-xs">
-            <thead class="bg-slate-100/80 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
+          <table class="min-w-[1600px] w-full text-left text-sm">
+            <thead class="bg-slate-100/80 text-slate-600 font-semibold uppercase tracking-wider text-xs sm:text-sm border-b border-slate-200">
               <tr>
                 <th class="table-cell">รหัส / วันเวลา</th>
                 <th class="table-cell">ระดับความเสี่ยง</th>
@@ -187,395 +143,239 @@
     </section>
   </main>
 
-  <!-- Notification Toast -->
-  <div id="toast" class="fixed bottom-5 right-5 z-[60] hidden max-w-sm rounded-xl bg-slate-900 px-4 py-3 text-sm text-white shadow-xl"></div>
+  <div id="create-modal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/60 p-4">
+    <form id="create-form" class="max-h-[90vh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-3xl bg-white p-8 shadow-xl">
+      <div class="flex items-center justify-between border-b pb-4">
+        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2"><span>⚠️</span> เพิ่มรายงานจุดเสี่ยง (Near Miss)</h2>
+        <button id="close-modal" type="button" class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100">ปิด</button>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2 text-sm">
+        <label class="block font-medium">ระดับความเสี่ยง
+          <select id="m-risk" class="field mt-1.5"><option value="ต่ำ">🟢 ต่ำ</option><option value="ปานกลาง" selected>🟡 ปานกลาง</option><option value="สูง">🟠 สูง</option><option value="วิกฤต">🔴 วิกฤต</option></select>
+        </label>
+        <label class="block font-medium">ชื่อผู้พบเห็น/ผู้แจ้ง<input id="m-name" class="field mt-1.5" maxlength="120" required></label>
+        <label class="block font-medium">หน่วยงาน<input id="m-dept" class="field mt-1.5" maxlength="120" required></label>
+        <label class="block font-medium">เบอร์ติดต่อ<input id="m-phone" class="field mt-1.5" maxlength="40"></label>
+        <label class="block font-medium">สถานที่ / บริเวณ<input id="m-location" class="field mt-1.5" maxlength="200" required></label>
+        <label class="block font-medium">จุดระบุเพิ่มเติม<input id="m-area" class="field mt-1.5" maxlength="200"></label>
+        <label class="block font-medium sm:col-span-2">รายละเอียดจุดเสี่ยง หรือ เหตุการณ์<textarea id="m-hazard" class="field mt-1.5 min-h-24 resize-none" maxlength="2000" required></textarea></label>
+        <label class="block font-medium sm:col-span-2">ข้อเสนอแนะ / แนวทางป้องกันเบื้องต้น<textarea id="m-suggestion" class="field mt-1.5 min-h-16 resize-none" maxlength="1000"></textarea></label>
+      </div>
+
+      <div class="flex justify-end gap-3 border-t pt-5">
+        <button id="cancel-create" type="button" class="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">ยกเลิก</button>
+        <button id="submit-create" type="submit" class="rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-6 py-2.5 text-sm font-bold text-white hover:from-rose-700 hover:to-red-700 shadow-md">
+          บันทึกและส่งแจ้งเตือน
+        </button>
+      </div>
+    </form>
+  </div>
 
   <script>
-    // =======================================================
     // 🔴 ใส่ URL Web App ที่ได้จาก Google Apps Script ที่นี่
-    // =======================================================
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw4HLnRLEs5Xjypg-7G8d6SDzAPMiIHs1Ug0VjdNJSE4tXM4mEy8FNBswbpxTERXlBo5g/exec";
 
     let currentPin = '';
     let allReports = [];
-
-    async function callBackend(payload) {
-      try {
-        const response = await fetch(GAS_API_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-        if (!response.ok) {
-          throw new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ (HTTP ' + response.status + ')');
-        }
-        return await response.json();
-      } catch (err) {
-        throw new Error(err.message || String(err));
-      }
-    }
-
-    function showError(message) {
-      const box = document.getElementById('page-error');
-      box.textContent = message;
-      box.classList.remove('hidden');
-    }
-
-    function clearError() {
-      const box = document.getElementById('page-error');
-      box.textContent = '';
-      box.classList.add('hidden');
-    }
 
     function showToast(message) {
       const toast = document.getElementById('toast');
       toast.textContent = message;
       toast.classList.remove('hidden');
       clearTimeout(showToast.timer);
-      showToast.timer = setTimeout(function () {
-        toast.classList.add('hidden');
-      }, 4500);
+      showToast.timer = setTimeout(() => toast.classList.add('hidden'), 4000);
     }
 
-    document.getElementById('pin-form').addEventListener('submit', function (event) {
-      event.preventDefault();
+    async function callBackend(payload) {
+      try {
+        const response = await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return await response.json();
+      } catch (err) { throw new Error(err.message || String(err)); }
+    }
+
+    function showError(msg) { const b = document.getElementById('page-error'); b.textContent = msg; b.classList.remove('hidden'); }
+    function clearError() { const b = document.getElementById('page-error'); b.textContent = ''; b.classList.add('hidden'); }
+
+    document.getElementById('pin-form').addEventListener('submit', (e) => {
+      e.preventDefault();
       currentPin = document.getElementById('pin-input').value.trim();
       document.getElementById('pin-error').classList.add('hidden');
       loadDashboard(true);
     });
+    document.getElementById('refresh-button').addEventListener('click', () => loadDashboard(false));
 
-    document.getElementById('refresh-button').addEventListener('click', function () {
-      loadDashboard(false);
-    });
-
-    [
-      'filter-search', 'filter-risk', 'filter-status',
-      'filter-department', 'filter-from', 'filter-to'
-    ].forEach(function (id) {
+    ['filter-search', 'filter-risk', 'filter-status', 'filter-department', 'filter-from', 'filter-to'].forEach(id => {
       document.getElementById(id).addEventListener('input', renderFilteredTable);
       document.getElementById(id).addEventListener('change', renderFilteredTable);
     });
 
-    document.getElementById('clear-filters').addEventListener('click', function () {
-      [
-        'filter-search', 'filter-risk', 'filter-status',
-        'filter-department', 'filter-from', 'filter-to'
-      ].forEach(function (id) {
-        document.getElementById(id).value = '';
-      });
+    document.getElementById('clear-filters').addEventListener('click', () => {
+      ['filter-search', 'filter-risk', 'filter-status', 'filter-department', 'filter-from', 'filter-to'].forEach(id => document.getElementById(id).value = '');
       renderFilteredTable();
     });
 
     async function loadDashboard(fromPin) {
       clearError();
       try {
-        const result = await callBackend({
-          action: 'adminGetAllNearMiss',
-          pin: currentPin
-        });
-        if (!result || result.status !== 'success') {
-          throw new Error(result && result.message ? result.message : 'โหลดข้อมูลไม่สำเร็จ');
-        }
+        const result = await callBackend({ action: 'adminGetAllNearMiss', pin: currentPin });
+        if (!result || result.status !== 'success') throw new Error(result?.message || 'โหลดข้อมูลไม่สำเร็จ');
         allReports = result.data || [];
         updateStats(allReports);
         renderFilteredTable();
         document.getElementById('pin-modal').classList.add('hidden');
       } catch (error) {
-        const message = error && error.message ? error.message : String(error);
-        if (fromPin) {
-          const box = document.getElementById('pin-error');
-          box.textContent = message;
-          box.classList.remove('hidden');
-        } else {
-          showError('โหลดข้อมูลไม่สำเร็จ: ' + message);
-        }
+        if (fromPin) { const b = document.getElementById('pin-error'); b.textContent = error.message; b.classList.remove('hidden'); }
+        else showError('โหลดข้อมูลไม่สำเร็จ: ' + error.message);
       }
     }
 
     function updateStats(reports) {
       document.getElementById('stat-total').textContent = reports.length;
-      document.getElementById('stat-critical').textContent =
-        reports.filter(r => r.riskLevel === 'วิกฤต' || r.riskLevel === 'สูง').length;
-      document.getElementById('stat-pending').textContent =
-        reports.filter(r => r.status === 'รอดำเนินการ' || r.status === 'กำลังดำเนินการ').length;
-      document.getElementById('stat-done').textContent =
-        reports.filter(r => r.status === 'เสร็จสิ้น').length;
-
-      renderRiskPie(reports);
-      renderLocationBars(reports);
-      renderStatusBars(reports);
+      document.getElementById('stat-critical').textContent = reports.filter(r => r.riskLevel === 'วิกฤต' || r.riskLevel === 'สูง').length;
+      document.getElementById('stat-pending').textContent = reports.filter(r => r.status === 'รอดำเนินการ' || r.status === 'กำลังดำเนินการ').length;
+      document.getElementById('stat-done').textContent = reports.filter(r => r.status === 'เสร็จสิ้น').length;
+      renderRiskPie(reports); renderLocationBars(reports); renderStatusBars(reports);
     }
 
     function renderRiskPie(reports) {
-      const counts = {
-        'วิกฤต': reports.filter(r => r.riskLevel === 'วิกฤต').length,
-        'สูง': reports.filter(r => r.riskLevel === 'สูง').length,
-        'ปานกลาง': reports.filter(r => r.riskLevel === 'ปานกลาง').length,
-        'ต่ำ': reports.filter(r => r.riskLevel === 'ต่ำ').length
-      };
+      const counts = { 'วิกฤต': reports.filter(r => r.riskLevel === 'วิกฤต').length, 'สูง': reports.filter(r => r.riskLevel === 'สูง').length, 'ปานกลาง': reports.filter(r => r.riskLevel === 'ปานกลาง').length, 'ต่ำ': reports.filter(r => r.riskLevel === 'ต่ำ').length };
       const total = reports.length;
-
       if (!total) {
         document.getElementById('risk-pie').style.background = '#f1f5f9';
-        document.getElementById('risk-legend').innerHTML = '<p class="text-slate-400">ยังไม่มีข้อมูล</p>';
-        return;
+        document.getElementById('risk-legend').innerHTML = '<p class="text-slate-400">ยังไม่มีข้อมูล</p>'; return;
       }
-
-      const pCrit = (counts['วิกฤต'] / total) * 100;
-      const pHigh = (counts['สูง'] / total) * 100;
-      const pMed = (counts['ปานกลาง'] / total) * 100;
-      const pLow = (counts['ต่ำ'] / total) * 100;
-
-      const c1 = pCrit;
-      const c2 = c1 + pHigh;
-      const c3 = c2 + pMed;
-
-      document.getElementById('risk-pie').style.background =
-        `conic-gradient(#ef4444 0% ${c1}%, #f97316 ${c1}% ${c2}%, #f59e0b ${c2}% ${c3}%, #10b981 ${c3}% 100%)`;
-
-      const legend = document.getElementById('risk-legend');
-      legend.replaceChildren();
-      addLegendItem(legend, '#ef4444', 'วิกฤต (Critical)', counts['วิกฤต'], total);
-      addLegendItem(legend, '#f97316', 'สูง (High)', counts['สูง'], total);
-      addLegendItem(legend, '#f59e0b', 'ปานกลาง (Medium)', counts['ปานกลาง'], total);
-      addLegendItem(legend, '#10b981', 'ต่ำ (Low)', counts['ต่ำ'], total);
+      const c1 = (counts['วิกฤต'] / total) * 100; const c2 = c1 + (counts['สูง'] / total) * 100; const c3 = c2 + (counts['ปานกลาง'] / total) * 100;
+      document.getElementById('risk-pie').style.background = `conic-gradient(#ef4444 0% ${c1}%, #f97316 ${c1}% ${c2}%, #f59e0b ${c2}% ${c3}%, #10b981 ${c3}% 100%)`;
+      const legend = document.getElementById('risk-legend'); legend.replaceChildren();
+      addLegendItem(legend, '#ef4444', 'วิกฤต', counts['วิกฤต'], total); addLegendItem(legend, '#f97316', 'สูง', counts['สูง'], total); addLegendItem(legend, '#f59e0b', 'ปานกลาง', counts['ปานกลาง'], total); addLegendItem(legend, '#10b981', 'ต่ำ', counts['ต่ำ'], total);
     }
 
-    function addLegendItem(container, color, label, count, total) {
-      const row = document.createElement('div');
-      row.className = 'flex items-center gap-2.5';
-      const dot = document.createElement('span');
-      dot.className = 'inline-block h-3.5 w-3.5 rounded-md shadow-sm';
-      dot.style.backgroundColor = color;
-      const text = document.createElement('span');
-      text.textContent = label + ': ' + count + ' จุด (' + (total ? Math.round((count / total) * 100) : 0) + '%)';
-      row.append(dot, text);
-      container.appendChild(row);
+    function addLegendItem(c, color, label, count, total) {
+      const r = document.createElement('div'); r.className = 'flex items-center gap-2.5';
+      const d = document.createElement('span'); d.className = 'inline-block h-3.5 w-3.5 rounded-md shadow-sm'; d.style.backgroundColor = color;
+      const t = document.createElement('span'); t.textContent = label + ': ' + count + ' (' + (total ? Math.round((count / total) * 100) : 0) + '%)';
+      r.append(d, t); c.appendChild(r);
     }
 
     function renderLocationBars(reports) {
-      const locCounts = {};
-      reports.forEach(r => {
-        const loc = r.location || 'ไม่ระบุ';
-        locCounts[loc] = (locCounts[loc] || 0) + 1;
-      });
-      
-      // ดึง Top 5 สถานที่ที่เกิดเหตุบ่อยสุด
-      const sortedLocs = Object.entries(locCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5);
-        
-      const max = Math.max(1, ...sortedLocs.map(i => i[1]));
-      const container = document.getElementById('location-bars');
-      container.replaceChildren();
-
-      if (!sortedLocs.length) {
-        container.innerHTML = '<p class="text-slate-400 text-xs mt-4">ยังไม่มีข้อมูลสถานที่</p>';
-        return;
-      }
-
-      sortedLocs.forEach(([loc, count]) => {
-        const row = document.createElement('div');
-        row.innerHTML = `
-          <div class="mb-1 flex justify-between text-xs">
-            <span class="text-slate-600 font-medium truncate pr-2">${loc}</span>
-            <span class="font-bold text-rose-700 whitespace-nowrap">${count} จุด</span>
-          </div>
-          <div class="h-2.5 overflow-hidden rounded-full bg-slate-100">
-            <div class="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-amber-500 to-rose-600" style="width: ${(count / max) * 100}%"></div>
-          </div>
-        `;
-        container.appendChild(row);
+      const lc = {}; reports.forEach(r => { const l = r.location || 'ไม่ระบุ'; lc[l] = (lc[l] || 0) + 1; });
+      const sorted = Object.entries(lc).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      const max = Math.max(1, ...sorted.map(i => i[1]));
+      const c = document.getElementById('location-bars'); c.replaceChildren();
+      if (!sorted.length) { c.innerHTML = '<p class="text-slate-400 text-xs mt-4">ยังไม่มีข้อมูลสถานที่</p>'; return; }
+      sorted.forEach(([loc, count]) => {
+        const r = document.createElement('div');
+        r.innerHTML = `<div class="mb-1 flex justify-between text-xs"><span class="text-slate-600 font-medium truncate pr-2">${loc}</span><span class="font-bold text-rose-700 whitespace-nowrap">${count} จุด</span></div><div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-amber-500 to-rose-600" style="width: ${(count / max) * 100}%"></div></div>`;
+        c.appendChild(r);
       });
     }
 
     function renderStatusBars(reports) {
-      const statuses = [
-        { label: 'รอดำเนินการ', color: 'bg-amber-500' },
-        { label: 'กำลังดำเนินการ', color: 'bg-orange-500' },
-        { label: 'เสร็จสิ้น', color: 'bg-emerald-500' }
-      ];
+      const sts = [{ label: 'รอดำเนินการ', color: 'bg-amber-500' }, { label: 'กำลังดำเนินการ', color: 'bg-orange-500' }, { label: 'เสร็จสิ้น', color: 'bg-emerald-500' }];
       const max = Math.max(1, reports.length);
-      const container = document.getElementById('status-bars');
-      container.replaceChildren();
-
-      statuses.forEach(item => {
-        const count = reports.filter(r => r.status === item.label).length;
-        const row = document.createElement('div');
-        row.innerHTML = `
-          <div class="mb-1 flex justify-between text-xs">
-            <span class="text-slate-600 font-medium">${item.label}</span>
-            <span class="font-bold text-slate-700">${count} รายการ (${Math.round((count / max) * 100)}%)</span>
-          </div>
-          <div class="h-3 overflow-hidden rounded-full bg-slate-100">
-            <div class="h-full rounded-full transition-all duration-500 ${item.color}" style="width: ${(count / max) * 100}%"></div>
-          </div>
-        `;
-        container.appendChild(row);
+      const c = document.getElementById('status-bars'); c.replaceChildren();
+      sts.forEach(i => {
+        const count = reports.filter(r => r.status === i.label).length;
+        const r = document.createElement('div');
+        r.innerHTML = `<div class="mb-1 flex justify-between text-xs"><span class="text-slate-600 font-medium">${i.label}</span><span class="font-bold text-slate-700">${count} รายการ (${Math.round((count / max) * 100)}%)</span></div><div class="h-3 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full ${i.color}" style="width: ${(count / max) * 100}%"></div></div>`;
+        c.appendChild(r);
       });
     }
 
     function renderFilteredTable() {
       const search = document.getElementById('filter-search').value.trim().toLowerCase();
-      const risk = document.getElementById('filter-risk').value;
-      const status = document.getElementById('filter-status').value;
-      const department = document.getElementById('filter-department').value.trim().toLowerCase();
-      const from = document.getElementById('filter-from').value;
-      const to = document.getElementById('filter-to').value;
-
-      const filtered = allReports.filter(function (r) {
-        const text = [r.reportId, r.reporterName, r.location, r.hazardDetail, r.department].join(' ').toLowerCase();
-        const date = String(r.timestamp || '').slice(0, 10);
-
-        return (!search || text.includes(search))
-          && (!risk || r.riskLevel === risk)
-          && (!status || r.status === status)
-          && (!department || String(r.department || '').toLowerCase().includes(department))
-          && (!from || !date || date >= from)
-          && (!to || !date || date <= to);
+      const risk = document.getElementById('filter-risk').value; const status = document.getElementById('filter-status').value;
+      const dept = document.getElementById('filter-department').value.trim().toLowerCase();
+      const from = document.getElementById('filter-from').value; const to = document.getElementById('filter-to').value;
+      const f = allReports.filter(r => {
+        const txt = [r.reportId, r.reporterName, r.location, r.hazardDetail, r.department].join(' ').toLowerCase();
+        const d = String(r.timestamp || '').slice(0, 10);
+        return (!search || txt.includes(search)) && (!risk || r.riskLevel === risk) && (!status || r.status === status) && (!dept || String(r.department || '').toLowerCase().includes(dept)) && (!from || !d || d >= from) && (!to || !d || d <= to);
       });
-
-      renderTable(filtered);
+      renderTable(f);
     }
 
     function renderTable(reports) {
-      const tbody = document.getElementById('report-table');
-      tbody.replaceChildren();
-
-      if (!reports.length) {
-        tbody.innerHTML = '<tr><td colspan="10" class="table-cell text-center text-slate-400 py-8">ไม่พบข้อมูลรายงานตามตัวกรอง</td></tr>';
-        return;
-      }
-
-      reports.forEach(function (item) {
-        const row = document.createElement('tr');
-        row.className = 'hover:bg-slate-50/80 transition';
-
-        // 1. รหัส / วันเวลา
-        row.appendChild(makeCell(
-          item.reportId + '\n' + item.timestamp,
-          'font-mono font-bold text-rose-700 whitespace-pre-line'
-        ));
-
-        // 2. ระดับความเสี่ยง (Badge)
-        const riskCell = document.createElement('td');
-        riskCell.className = 'table-cell';
-        let badgeColor = 'bg-amber-100 text-amber-800 border-amber-200';
-        if (item.riskLevel === 'วิกฤต') badgeColor = 'bg-red-100 text-red-800 border-red-300 font-bold';
-        else if (item.riskLevel === 'สูง') badgeColor = 'bg-orange-100 text-orange-800 border-orange-300 font-bold';
-        else if (item.riskLevel === 'ต่ำ') badgeColor = 'bg-emerald-100 text-emerald-800 border-emerald-200';
-        riskCell.innerHTML = `<span class="px-2.5 py-1 rounded-lg text-xs border ${badgeColor}">${item.riskLevel}</span>`;
-        row.appendChild(riskCell);
-
-        // 3. ผู้รายงาน
-        row.appendChild(makeCell(
-          item.reporterName + '\n' + item.department + '\nภายใน: ' + (item.internalPhone || '-'),
-          'whitespace-pre-line'
-        ));
-
-        // 4. สถานที่
-        row.appendChild(makeCell(
-          item.location + (item.areaOrDetail ? '\n(' + item.areaOrDetail + ')' : ''),
-          'whitespace-pre-line font-medium text-slate-700'
-        ));
-
-        // 5. รายละเอียด
-        row.appendChild(makeCell(item.hazardDetail || '-', 'max-w-xs whitespace-pre-line text-slate-600'));
-
-        // 6. ข้อเสนอแนะ
-        row.appendChild(makeCell(item.preventiveSuggestion || '-', 'max-w-xs whitespace-pre-line text-slate-500 italic'));
-
-        // 7. รูปภาพ
-        const imgCell = document.createElement('td');
-        imgCell.className = 'table-cell';
-        if (item.imageUrls) {
-          item.imageUrls.split(',').forEach((url, idx) => {
-            const link = document.createElement('a');
-            link.href = url.trim();
-            link.target = '_blank';
-            link.rel = 'noopener noreferrer';
-            link.className = 'inline-block mr-1.5 text-xs text-rose-600 hover:underline font-medium';
-            link.textContent = 'รูป ' + (idx + 1);
-            imgCell.appendChild(link);
+      const tbody = document.getElementById('report-table'); tbody.replaceChildren();
+      if (!reports.length) { tbody.innerHTML = '<tr><td colspan="10" class="table-cell text-center text-slate-400 py-8">ไม่พบข้อมูลรายงานตามตัวกรอง</td></tr>'; return; }
+      reports.forEach(i => {
+        const row = document.createElement('tr'); row.className = 'hover:bg-slate-50/80 transition';
+        row.appendChild(makeCell(i.reportId + '\n' + i.timestamp, 'font-mono font-bold text-rose-700 whitespace-pre-line text-[15px]'));
+        
+        const riskCell = document.createElement('td'); riskCell.className = 'table-cell';
+        let bc = 'bg-amber-100 text-amber-800 border-amber-200';
+        if (i.riskLevel === 'วิกฤต') bc = 'bg-red-100 text-red-800 border-red-300 font-bold';
+        else if (i.riskLevel === 'สูง') bc = 'bg-orange-100 text-orange-800 border-orange-300 font-bold';
+        else if (i.riskLevel === 'ต่ำ') bc = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+        riskCell.innerHTML = `<span class="px-3 py-1.5 rounded-lg text-sm border ${bc}">${i.riskLevel}</span>`; row.appendChild(riskCell);
+        
+        row.appendChild(makeCell(i.reporterName + '\n' + i.department + '\nภายใน: ' + (i.internalPhone || '-'), 'whitespace-pre-line'));
+        row.appendChild(makeCell(i.location + (i.areaOrDetail ? '\n(' + i.areaOrDetail + ')' : ''), 'whitespace-pre-line font-medium text-slate-700'));
+        row.appendChild(makeCell(i.hazardDetail || '-', 'max-w-xs whitespace-pre-line text-slate-600'));
+        row.appendChild(makeCell(i.preventiveSuggestion || '-', 'max-w-xs whitespace-pre-line text-slate-500 italic'));
+        
+        const imgCell = document.createElement('td'); imgCell.className = 'table-cell';
+        if (i.imageUrls) {
+          i.imageUrls.split(',').forEach((url, idx) => {
+            const a = document.createElement('a'); a.href = url.trim(); a.target = '_blank'; a.rel = 'noopener noreferrer';
+            a.className = 'inline-block mr-1.5 text-sm text-rose-600 hover:underline font-medium'; a.textContent = 'รูป ' + (idx + 1); imgCell.appendChild(a);
           });
-        } else {
-          imgCell.textContent = '-';
-        }
+        } else imgCell.textContent = '-';
         row.appendChild(imgCell);
 
-        // 8. สถานะจัดการ
-        const statusCell = document.createElement('td');
-        statusCell.className = 'table-cell';
-        const select = document.createElement('select');
-        select.className = 'field min-w-36 text-xs font-semibold';
-        ['รอดำเนินการ', 'กำลังดำเนินการ', 'เสร็จสิ้น'].forEach(st => {
-          const opt = document.createElement('option');
-          opt.value = st;
-          opt.textContent = st;
-          opt.selected = st === item.status;
-          select.appendChild(opt);
-        });
-        statusCell.appendChild(select);
-        row.appendChild(statusCell);
+        const stCell = document.createElement('td'); stCell.className = 'table-cell';
+        const select = document.createElement('select'); select.className = 'field min-w-36 text-sm font-semibold';
+        ['รอดำเนินการ', 'กำลังดำเนินการ', 'เสร็จสิ้น'].forEach(st => { const opt = document.createElement('option'); opt.value = st; opt.textContent = st; opt.selected = st === i.status; select.appendChild(opt); });
+        stCell.appendChild(select); row.appendChild(stCell);
 
-        // 9. มาตรการแก้ไข / บันทึก จป.
-        const noteCell = document.createElement('td');
-        noteCell.className = 'table-cell';
-        const input = document.createElement('textarea');
-        input.className = 'field min-w-48 text-xs resize-none';
-        input.rows = 2;
-        input.maxLength = 1000;
-        input.value = item.safetyNote || '';
-        input.placeholder = 'ระบุมาตรการแก้ไข/ป้องกัน หรือข้อคิดเห็น จป.';
-        noteCell.appendChild(input);
-        row.appendChild(noteCell);
+        const noteCell = document.createElement('td'); noteCell.className = 'table-cell';
+        const input = document.createElement('textarea'); input.className = 'field min-w-48 text-sm resize-none'; input.rows = 2; input.maxLength = 1000; input.value = i.safetyNote || ''; input.placeholder = 'ระบุมาตรการแก้ไข/ป้องกัน หรือข้อคิดเห็น จป.';
+        noteCell.appendChild(input); row.appendChild(noteCell);
 
-        // 10. ปุ่มบันทึก
-        const actCell = document.createElement('td');
-        actCell.className = 'table-cell';
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'rounded-xl bg-slate-900 px-3 py-1.5 font-semibold text-white hover:bg-slate-800 active:scale-95 transition';
-        btn.textContent = 'บันทึก';
-        btn.addEventListener('click', function () {
-          updateNearMiss(item.reportId, select.value, input.value);
-        });
-        actCell.appendChild(btn);
-        row.appendChild(actCell);
+        const actCell = document.createElement('td'); actCell.className = 'table-cell';
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white hover:bg-slate-800 active:scale-95 transition'; btn.textContent = 'บันทึก';
+        btn.addEventListener('click', () => updateNearMiss(i.reportId, select.value, input.value));
+        actCell.appendChild(btn); row.appendChild(actCell);
 
         tbody.appendChild(row);
       });
     }
 
-    function makeCell(text, extraClass) {
-      const cell = document.createElement('td');
-      cell.className = 'table-cell ' + (extraClass || '');
-      cell.textContent = text || '-';
-      return cell;
-    }
+    function makeCell(txt, cls) { const c = document.createElement('td'); c.className = 'table-cell ' + (cls || ''); c.textContent = txt || '-'; return c; }
 
-    async function updateNearMiss(reportId, status, safetyNote) {
+    async function updateNearMiss(reportId, status, note) {
       clearError();
       try {
-        const result = await callBackend({
-          action: 'updateNearMissStatus',
-          pin: currentPin,
-          reportId: reportId,
-          status: status,
-          safetyNote: safetyNote
-        });
-        if (!result || result.status !== 'success') {
-          throw new Error(result?.message || 'บันทึกไม่สำเร็จ');
-        }
-        showToast(
-          result.notification && result.notification.sent
-            ? 'บันทึกมาตรการและแจ้งเตือนผู้รายงานทาง LINE สำเร็จ'
-            : 'บันทึกข้อมูลเรียบร้อย'
-        );
+        const res = await callBackend({ action: 'updateNearMissStatus', pin: currentPin, reportId: reportId, status: status, safetyNote: note });
+        if (!res || res.status !== 'success') throw new Error(res?.message || 'บันทึกไม่สำเร็จ');
+        showToast((res.notification && res.notification.sent) ? 'บันทึกและแจ้งเตือน LINE สำเร็จ' : 'บันทึกข้อมูลเรียบร้อย');
         await loadDashboard(false);
-      } catch (error) {
-        showError('บันทึกไม่สำเร็จ: ' + (error.message || String(error)));
-      }
+      } catch (err) { showError('บันทึกไม่สำเร็จ: ' + err.message); }
     }
+
+    document.getElementById('new-button').addEventListener('click', () => { clearError(); document.getElementById('create-modal').classList.replace('hidden', 'flex'); });
+    document.getElementById('close-modal').addEventListener('click', () => document.getElementById('create-modal').classList.replace('flex', 'hidden'));
+    document.getElementById('cancel-create').addEventListener('click', () => document.getElementById('create-modal').classList.replace('flex', 'hidden'));
+
+    document.getElementById('create-form').addEventListener('submit', async (e) => {
+      e.preventDefault(); clearError();
+      const p = {
+        action: 'adminCreateNearMiss', pin: currentPin,
+        reporterName: document.getElementById('m-name').value.trim(), department: document.getElementById('m-dept').value.trim(),
+        internalPhone: document.getElementById('m-phone').value.trim(), location: document.getElementById('m-location').value.trim(),
+        areaOrDetail: document.getElementById('m-area').value.trim(), riskLevel: document.getElementById('m-risk').value,
+        hazardDetail: document.getElementById('m-hazard').value.trim(), preventiveSuggestion: document.getElementById('m-suggestion').value.trim()
+      };
+      if (!p.reporterName || !p.department || !p.location || !p.hazardDetail) return showToast('กรุณากรอกข้อมูลให้ครบถ้วน');
+      try {
+        const res = await callBackend(p);
+        if (!res || res.status !== 'success') throw new Error(res?.message || 'บันทึกไม่สำเร็จ');
+        document.getElementById('create-modal').classList.replace('flex', 'hidden'); document.getElementById('create-form').reset();
+        showToast('บันทึกสำเร็จ: ' + res.reportId); await loadDashboard(false);
+      } catch (err) { showError('สร้างรายงานไม่สำเร็จ: ' + err.message); }
+    });
   </script>
 </body>
 </html>
