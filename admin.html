@@ -63,21 +63,21 @@
 
     <section id="dashboard-content" class="space-y-5">
       <div class="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
-        <div class="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
-          <p class="text-xs text-slate-500 font-medium">งานทั้งหมด</p>
-          <p id="stat-total" class="mt-1 text-3xl font-extrabold text-slate-800">0</p>
+        <div class="rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 p-5 text-white shadow-md">
+          <div class="flex items-center justify-between text-slate-300 text-xs"><span>งานทั้งหมด</span><span class="rounded-lg bg-white/20 px-2 py-0.5 text-[10px]">Total</span></div>
+          <p id="stat-total" class="mt-2 text-3xl font-extrabold tracking-tight">0</p>
         </div>
-        <div class="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
-          <p class="text-xs text-amber-600 font-medium">รอดำเนินการ</p>
-          <p id="stat-pending" class="mt-1 text-3xl font-extrabold text-amber-600">0</p>
+        <div class="rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 p-5 text-white shadow-md shadow-amber-500/15">
+          <div class="flex items-center justify-between text-amber-100 text-xs"><span>รอดำเนินการ</span><span class="rounded-lg bg-white/20 px-2 py-0.5 text-[10px]">Pending</span></div>
+          <p id="stat-pending" class="mt-2 text-3xl font-extrabold tracking-tight">0</p>
         </div>
-        <div class="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
-          <p class="text-xs text-sky-600 font-medium">กำลังดำเนินการ</p>
-          <p id="stat-progress" class="mt-1 text-3xl font-extrabold text-sky-600">0</p>
+        <div class="rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 p-5 text-white shadow-md shadow-sky-500/15">
+          <div class="flex items-center justify-between text-sky-100 text-xs"><span>กำลังดำเนินการ</span><span class="rounded-lg bg-white/20 px-2 py-0.5 text-[10px]">In Progress</span></div>
+          <p id="stat-progress" class="mt-2 text-3xl font-extrabold tracking-tight">0</p>
         </div>
-        <div class="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
-          <p class="text-xs text-emerald-600 font-medium">เสร็จสิ้น</p>
-          <p id="stat-done" class="mt-1 text-3xl font-extrabold text-emerald-600">0</p>
+        <div class="rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-5 text-white shadow-md shadow-emerald-500/15">
+          <div class="flex items-center justify-between text-emerald-100 text-xs"><span>เสร็จสิ้น</span><span class="rounded-lg bg-white/20 px-2 py-0.5 text-[10px]">Done</span></div>
+          <p id="stat-done" class="mt-2 text-3xl font-extrabold tracking-tight">0</p>
         </div>
       </div>
 
@@ -293,19 +293,19 @@
       const total = bCount + eCount;
       const bPer = total ? bCount / total * 100 : 0;
       document.getElementById('type-pie').style.background = total
-        ? `conic-gradient(#4f46e5 0% ${bPer}%, #0ea5e9 ${bPer}% 100%)` : '#f1f5f9';
+        ? `conic-gradient(#6366f1 0% ${bPer}%, #0ea5e9 ${bPer}% 100%)` : '#f1f5f9';
       
       const legend = document.getElementById('type-legend');
       legend.replaceChildren();
-      addLegendItem(legend, '#4f46e5', 'อาคาร/สถานที่', bCount, total);
+      addLegendItem(legend, '#6366f1', 'อาคาร/สถานที่', bCount, total);
       addLegendItem(legend, '#0ea5e9', 'ครุภัณฑ์/อุปกรณ์', eCount, total);
-      const tt = document.createElement('div'); tt.className = 'pt-1 text-xs text-slate-500'; tt.textContent = 'รวม ' + total + ' ใบงาน';
+      const tt = document.createElement('div'); tt.className = 'pt-1 text-xs text-slate-500 font-medium'; tt.textContent = 'รวม ' + total + ' ใบงาน';
       legend.appendChild(tt);
     }
 
     function addLegendItem(c, color, label, count, total) {
       const r = document.createElement('div'); r.className = 'flex items-center gap-2.5';
-      const d = document.createElement('span'); d.className = 'inline-block h-3.5 w-3.5 rounded-md'; d.style.backgroundColor = color;
+      const d = document.createElement('span'); d.className = 'inline-block h-3.5 w-3.5 rounded-md shadow-sm'; d.style.backgroundColor = color;
       const t = document.createElement('span'); t.textContent = label + ': ' + count + ' (' + (total ? Math.round(count / total * 100) : 0) + '%)';
       r.append(d, t); c.appendChild(r);
     }
@@ -320,8 +320,8 @@
       counts.forEach(i => {
         const r = document.createElement('div');
         r.innerHTML = `
-          <div class="mb-1 flex justify-between text-xs"><span>${i.loc}</span><span class="font-bold text-slate-700">${i.count}</span></div>
-          <div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-indigo-500" style="width: ${(i.count / max) * 100}%"></div></div>
+          <div class="mb-1 flex justify-between text-xs"><span class="text-slate-600 font-medium truncate pr-2">${i.loc}</span><span class="font-bold text-indigo-700 whitespace-nowrap">${i.count} ใบงาน</span></div>
+          <div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-600" style="width: ${(i.count / max) * 100}%"></div></div>
         `;
         c.appendChild(r);
       });
