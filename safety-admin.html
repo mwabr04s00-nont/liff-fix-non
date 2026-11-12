@@ -301,41 +301,42 @@
       const tbody = document.getElementById('report-table'); tbody.replaceChildren();
       if (!reports.length) { tbody.innerHTML = '<tr><td colspan="10" class="table-cell text-center text-slate-400 py-8">ไม่พบข้อมูลรายงานตามตัวกรอง</td></tr>'; return; }
       reports.forEach(i => {
-        const row = document.createElement('tr'); row.className = 'hover:bg-slate-50/80 transition';
-        row.appendChild(makeCell(i.reportId + '\n' + i.timestamp, 'font-mono font-bold text-rose-700 whitespace-pre-line text-[15px]'));
+        const row = document.createElement('tr'); row.className = 'hover:bg-slate-50/80 transition text-[13px] text-slate-700';
+        row.appendChild(makeCell(i.reportId + '\n' + i.timestamp, 'font-mono font-bold text-rose-700 whitespace-pre-line text-[13px]'));
         
-        const riskCell = document.createElement('td'); riskCell.className = 'table-cell';
-        let bc = 'bg-amber-100 text-amber-800 border-amber-200';
-        if (i.riskLevel === 'วิกฤต') bc = 'bg-red-100 text-red-800 border-red-300 font-bold';
-        else if (i.riskLevel === 'สูง') bc = 'bg-orange-100 text-orange-800 border-orange-300 font-bold';
-        else if (i.riskLevel === 'ต่ำ') bc = 'bg-emerald-100 text-emerald-800 border-emerald-200';
-        riskCell.innerHTML = `<span class="px-3 py-1.5 rounded-lg text-sm border ${bc}">${i.riskLevel}</span>`; row.appendChild(riskCell);
+        const riskCell = document.createElement('td'); riskCell.className = 'table-cell text-center align-middle';
+        let bc = 'bg-amber-50 border-amber-200 shadow-amber-500/20'; let icon = '🟡';
+        if (i.riskLevel === 'วิกฤต') { bc = 'bg-rose-50 border-rose-200 shadow-rose-500/20'; icon = '🔴'; }
+        else if (i.riskLevel === 'สูง') { bc = 'bg-orange-50 border-orange-200 shadow-orange-500/20'; icon = '🟠'; }
+        else if (i.riskLevel === 'ต่ำ') { bc = 'bg-emerald-50 border-emerald-200 shadow-emerald-500/20'; icon = '🟢'; }
+        riskCell.innerHTML = `<div title="ความเสี่ยง: ${i.riskLevel}" class="flex items-center justify-center w-9 h-9 mx-auto rounded-xl border ${bc} cursor-help shadow-sm text-lg transition hover:scale-110">${icon}</div>`; 
+        row.appendChild(riskCell);
         
         row.appendChild(makeCell(i.reporterName + '\n' + i.department + '\nภายใน: ' + (i.internalPhone || '-'), 'whitespace-pre-line'));
-        row.appendChild(makeCell(i.location + (i.areaOrDetail ? '\n(' + i.areaOrDetail + ')' : ''), 'whitespace-pre-line font-medium text-slate-700'));
-        row.appendChild(makeCell(i.hazardDetail || '-', 'max-w-xs whitespace-pre-line text-slate-600'));
+        row.appendChild(makeCell(i.location + (i.areaOrDetail ? '\n(' + i.areaOrDetail + ')' : ''), 'whitespace-pre-line font-medium text-slate-800'));
+        row.appendChild(makeCell(i.hazardDetail || '-', 'max-w-xs whitespace-pre-line text-slate-700'));
         row.appendChild(makeCell(i.preventiveSuggestion || '-', 'max-w-xs whitespace-pre-line text-slate-500 italic'));
         
         const imgCell = document.createElement('td'); imgCell.className = 'table-cell';
         if (i.imageUrls) {
           i.imageUrls.split(',').forEach((url, idx) => {
             const a = document.createElement('a'); a.href = url.trim(); a.target = '_blank'; a.rel = 'noopener noreferrer';
-            a.className = 'inline-block mr-1.5 text-sm text-rose-600 hover:underline font-medium'; a.textContent = 'รูป ' + (idx + 1); imgCell.appendChild(a);
+            a.className = 'inline-block mr-1.5 text-[13px] text-rose-600 hover:underline font-medium'; a.textContent = 'รูป ' + (idx + 1); imgCell.appendChild(a);
           });
         } else imgCell.textContent = '-';
         row.appendChild(imgCell);
 
         const stCell = document.createElement('td'); stCell.className = 'table-cell';
-        const select = document.createElement('select'); select.className = 'field min-w-36 text-sm font-semibold';
+        const select = document.createElement('select'); select.className = 'field min-w-32 text-[13px] font-semibold py-1.5 px-2';
         ['รอดำเนินการ', 'กำลังดำเนินการ', 'เสร็จสิ้น'].forEach(st => { const opt = document.createElement('option'); opt.value = st; opt.textContent = st; opt.selected = st === i.status; select.appendChild(opt); });
         stCell.appendChild(select); row.appendChild(stCell);
 
         const noteCell = document.createElement('td'); noteCell.className = 'table-cell';
-        const input = document.createElement('textarea'); input.className = 'field min-w-48 text-sm resize-none'; input.rows = 2; input.maxLength = 1000; input.value = i.safetyNote || ''; input.placeholder = 'ระบุมาตรการแก้ไข/ป้องกัน หรือข้อคิดเห็น จป.';
+        const input = document.createElement('textarea'); input.className = 'field min-w-48 text-[13px] resize-none py-1.5 px-2'; input.rows = 2; input.maxLength = 1000; input.value = i.safetyNote || ''; input.placeholder = 'ระบุมาตรการแก้ไข/ป้องกัน หรือข้อคิดเห็น จป.';
         noteCell.appendChild(input); row.appendChild(noteCell);
 
         const actCell = document.createElement('td'); actCell.className = 'table-cell';
-        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white hover:bg-slate-800 active:scale-95 transition'; btn.textContent = 'บันทึก';
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'rounded-xl bg-slate-900 px-3.5 py-1.5 font-semibold text-white text-[13px] hover:bg-slate-800 active:scale-95 transition'; btn.textContent = 'บันทึก';
         btn.addEventListener('click', () => updateNearMiss(i.reportId, select.value, input.value));
         actCell.appendChild(btn); row.appendChild(actCell);
 
