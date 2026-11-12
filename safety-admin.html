@@ -98,7 +98,7 @@
       </div>
 
       <!-- สถิติระดับความเสี่ยง และ กราฟแท่งสถานะ -->
-      <div class="grid gap-4 lg:grid-cols-2">
+      <div class="grid gap-4 lg:grid-cols-3">
         <section class="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
           <div class="flex items-center justify-between">
             <h2 class="text-sm font-bold text-slate-800">สัดส่วนระดับความเสี่ยง (Risk Matrix)</h2>
@@ -108,6 +108,15 @@
             <div id="risk-pie" class="h-44 w-44 rounded-full shadow-inner" aria-label="กราฟวงกลมระดับความเสี่ยง"></div>
             <div id="risk-legend" class="space-y-2 text-xs"></div>
           </div>
+        </section>
+
+        <!-- เพิ่มกราฟสถานที่เกิดเหตุ 5 อันดับแรก -->
+        <section class="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-slate-800">5 อันดับสถานที่เกิดเหตุบ่อยสุด</h2>
+            <span class="text-xs text-slate-400">พื้นที่เฝ้าระวัง</span>
+          </div>
+          <div id="location-bars" class="mt-5 space-y-3.5"></div>
         </section>
 
         <section class="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
@@ -292,6 +301,7 @@
         reports.filter(r => r.status === 'เสร็จสิ้น').length;
 
       renderRiskPie(reports);
+      renderLocationBars(reports);
       renderStatusBars(reports);
     }
 
@@ -340,6 +350,42 @@
       text.textContent = label + ': ' + count + ' จุด (' + (total ? Math.round((count / total) * 100) : 0) + '%)';
       row.append(dot, text);
       container.appendChild(row);
+    }
+
+    function renderLocationBars(reports) {
+      const locCounts = {};
+      reports.forEach(r => {
+        const loc = r.location || 'ไม่ระบุ';
+        locCounts[loc] = (locCounts[loc] || 0) + 1;
+      });
+      
+      // ดึง Top 5 สถานที่ที่เกิดเหตุบ่อยสุด
+      const sortedLocs = Object.entries(locCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+        
+      const max = Math.max(1, ...sortedLocs.map(i => i[1]));
+      const container = document.getElementById('location-bars');
+      container.replaceChildren();
+
+      if (!sortedLocs.length) {
+        container.innerHTML = '<p class="text-slate-400 text-xs mt-4">ยังไม่มีข้อมูลสถานที่</p>';
+        return;
+      }
+
+      sortedLocs.forEach(([loc, count]) => {
+        const row = document.createElement('div');
+        row.innerHTML = `
+          <div class="mb-1 flex justify-between text-xs">
+            <span class="text-slate-600 font-medium truncate pr-2">${loc}</span>
+            <span class="font-bold text-rose-700 whitespace-nowrap">${count} จุด</span>
+          </div>
+          <div class="h-2.5 overflow-hidden rounded-full bg-slate-100">
+            <div class="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-amber-500 to-rose-600" style="width: ${(count / max) * 100}%"></div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
     }
 
     function renderStatusBars(reports) {
